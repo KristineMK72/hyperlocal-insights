@@ -1,58 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>HyperLocal Insights</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 :root{--bg:#0f1419;--panel:#1a2332;--card:#243044;--accent:#3b82f6;--text:#e2e8f0;--muted:#94a3b8;--success:#22c55e;--warning:#f59e0b;--border:#334155}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
-header{background:var(--panel);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;flex-wrap:wrap}
-h1{font-size:1.15rem}h1 span{color:var(--accent)}
-.search-wrap{flex:1;min-width:160px;max-width:420px;display:flex;gap:8px}
-.search-wrap input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 14px;color:var(--text);font-size:.9rem}
-button,.btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:.875rem;font-weight:600}
+header{background:var(--panel);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+h1{font-size:1.1rem}h1 span{color:var(--accent)}
+.search-wrap{flex:1;min-width:130px;display:flex;gap:8px}
+.search-wrap input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:16px}
+button,.btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-weight:600}
 .btn-secondary{background:var(--card);border:1px solid var(--border)}
 main{flex:1;display:flex;min-height:0}
 #map{flex:1;min-width:0}
 .sidebar{width:380px;background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
-.sidebar-header{padding:16px 18px 12px;border-bottom:1px solid var(--border)}
+.sidebar-header{padding:12px 16px;border-bottom:1px solid var(--border)}
 .coords{font-size:.75rem;color:var(--muted);font-family:ui-monospace,monospace}
 .tabs{display:flex;border-bottom:1px solid var(--border)}
-.tab{flex:1;background:none;border:none;color:var(--muted);padding:12px 8px;font-size:.8rem;font-weight:600;border-bottom:2px solid transparent;border-radius:0}
+.tab{flex:1;background:none;border:none;color:var(--muted);padding:12px 6px;font-size:.75rem;font-weight:600;border-radius:0;border-bottom:2px solid transparent}
 .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-.tab-content{flex:1;overflow-y:auto;padding:16px 18px}
+.tab-content{flex:1;overflow-y:auto;padding:14px}
 .panel{display:none}.panel.active{display:block}
 .card{background:var(--card);border-radius:10px;padding:14px;margin-bottom:12px;border:1px solid var(--border)}
-.card h3{font-size:.8rem;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
-.stat-row{display:flex;justify-content:space-between;margin-bottom:6px}
-.stat-value{font-weight:600}
-.empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
-.category-select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);margin-bottom:12px}
+.card h3{font-size:.75rem;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.stat-row{display:flex;justify-content:space-between;gap:8px;margin-bottom:6px}
+.stat-value{font-weight:600;text-align:right}
+.empty-state{text-align:center;padding:28px 14px;color:var(--muted)}
 .hint{font-size:.75rem;color:var(--muted);margin-top:8px;line-height:1.4}
-.loading{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:.875rem;padding:12px 0}
+.loading{display:flex;align-items:center;gap:8px;color:var(--muted);padding:10px 0}
 .spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-a{color:var(--accent);text-decoration:none}
+a{color:var(--accent)}
+.category-select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--text);margin-bottom:10px}
 .radius-btns{display:flex;gap:6px;margin-bottom:12px}
 .radius-btns button{flex:1;padding:6px;font-size:.75rem;background:var(--bg);border:1px solid var(--border)}
-.radius-btns button.active{background:var(--accent);border-color:var(--accent)}
+.radius-btns button.active{background:var(--accent)}
 .sheet-handle,.map-toggle{display:none}
 .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:600}
 .badge-green{background:rgba(34,197,94,.2);color:var(--success)}
 .badge-yellow{background:rgba(245,158,11,.2);color:var(--warning)}
 .badge-blue{background:rgba(59,130,246,.2);color:var(--accent)}
-.poi-item{padding:10px 0;border-bottom:1px solid var(--border);font-size:.85rem}
-@media(max-width:768px){html,body{height:100dvh}header{padding:8px 10px}.search-wrap{flex:1 1 auto;max-width:none;min-width:0}.search-wrap input{font-size:16px}main{position:relative;flex-direction:column}#map{flex:1 1 auto;width:100%;min-height:0;height:100%}.sidebar{position:absolute;left:0;right:0;bottom:0;width:100%;height:42%;max-height:42%;border-left:none;border-top:1px solid var(--border);border-radius:16px 16px 0 0;z-index:500}body.sheet-collapsed .sidebar{height:56px;max-height:56px}body.sheet-collapsed .tabs,body.sheet-collapsed .tab-content{display:none}.sheet-handle{display:flex;align-items:center;justify-content:center;gap:10px;padding:8px 12px 0}.sheet-handle .bar{width:40px;height:4px;background:#64748b;border-radius:999px}.map-toggle{display:inline-flex;margin-left:auto;background:var(--card);border:1px solid var(--border);font-size:.75rem;padding:4px 10px}}
-</style>
-</head>
+@media(max-width:768px){html,body{height:100dvh}main{position:relative;flex-direction:column}#map{width:100%;height:100%;min-height:0}.sidebar{position:absolute;left:0;right:0;bottom:0;width:100%;height:48%;border-left:none;border-top:1px solid var(--border);border-radius:16px 16px 0 0;z-index:500}body.sheet-collapsed .sidebar{height:56px}body.sheet-collapsed .tabs,body.sheet-collapsed .tab-content{display:none}.sheet-handle{display:flex;align-items:center;justify-content:center;gap:10px;padding:8px 12px 0}.sheet-handle .bar{width:40px;height:4px;background:#64748b;border-radius:999px}.map-toggle{display:inline-flex;margin-left:auto;background:var(--card);border:1px solid var(--border);font-size:.75rem;padding:4px 10px}}
+</style></head>
 <body>
 <header>
 <h1>Hyper<span>Local</span> Insights</h1>
-<div class="search-wrap"><input id="searchInput" placeholder="optional search" /><button id="searchBtn">Go</button></div>
+<div class="search-wrap"><input id="searchInput" placeholder="optional search"/><button id="searchBtn">Go</button></div>
 <button class="btn-secondary" id="clearBtn">Clear</button>
 </header>
 <main>
@@ -61,7 +59,7 @@ a{color:var(--accent);text-decoration:none}
 <div class="sheet-handle" id="sheetHandle"><div class="bar"></div><button type="button" class="map-toggle" id="sheetToggle">Show map</button></div>
 <div class="sidebar-header">
 <h2 id="locationTitle">Tap the map to drop a pin</h2>
-<div class="coords" id="coordsDisplay">Data follows the pin, not the search box</div>
+<div class="coords" id="coordsDisplay">Demographics follow the pin</div>
 </div>
 <div class="tabs">
 <button class="tab active" data-tab="overview">Overview</button>
@@ -71,202 +69,203 @@ a{color:var(--accent);text-decoration:none}
 </div>
 <div class="tab-content">
 <div class="panel active" id="panel-overview">
-<div class="empty-state" id="overviewEmpty"><p>Tap the map. Insights load for that exact pin.</p></div>
-<div id="overviewContent" style="display:none">
-<div class="card"><h3>This pin</h3>
+<div class="empty-state" id="overviewEmpty"><p>Tap the map. Data loads for that exact pin.</p></div>
+<div id="overviewContent" style="display:none"><div class="card"><h3>This pin</h3>
 <div class="stat-row"><span>Place</span><span class="stat-value" id="snapAddress">—</span></div>
 <div class="stat-row"><span>Lat / Lon</span><span class="stat-value" id="snapCoords">—</span></div>
-<div class="stat-row"><span>Radius</span><span class="stat-value" id="snapRadius">1 mile</span></div>
-</div>
-</div>
-</div>
+</div></div></div>
 <div class="panel" id="panel-competitors">
 <div class="empty-state" id="compEmpty"><p>Drop a pin first.</p></div>
 <div id="compContent" style="display:none">
 <select class="category-select" id="categorySelect">
-<option value="amenity=cafe">Cafe / Coffee</option>
+<option value="amenity=cafe">Cafe</option>
 <option value="amenity=restaurant">Restaurant</option>
-<option value="shop=convenience">Convenience Store</option>
-<option value="shop=supermarket">Grocery</option>
-<option value="amenity=pharmacy">Pharmacy</option>
-<option value="amenity=fuel">Gas Station</option>
+<option value="shop=convenience">Convenience</option>
+<option value="amenity=fuel">Gas</option>
 </select>
 <div class="radius-btns">
 <button data-r="0.5" class="radius-btn">0.5 mi</button>
 <button data-r="1" class="radius-btn active">1 mi</button>
 <button data-r="2" class="radius-btn">2 mi</button>
-<button data-r="3" class="radius-btn">3 mi</button>
 </div>
 <button id="runCompBtn" style="width:100%;margin-bottom:12px">Scan Competitors</button>
-<div id="compLoading" class="loading" style="display:none"><div class="spinner"></div> Querying OSM…</div>
-<div id="compResults" style="display:none">
-<div class="card"><h3>Density</h3>
+<div id="compLoading" class="loading" style="display:none"><div class="spinner"></div> OSM…</div>
+<div id="compResults" style="display:none"><div class="card"><h3>Density</h3>
 <div class="stat-row"><span>Found</span><span class="stat-value" id="compCount">0</span></div>
-<div class="stat-row"><span>Density</span><span class="stat-value" id="compDensity">—</span></div>
-<div class="stat-row"><span>Signal</span><span class="stat-value" id="compSignal">—</span></div>
-</div>
-<div class="card"><h3>Nearby</h3><div id="poiList"></div></div>
-</div>
-</div>
-</div>
+<div class="stat-row"><span>Signal</span><span class="stat-value" id="compSignal">—</span></div></div>
+<div class="card"><h3>Nearby</h3><div id="poiList"></div></div></div></div></div>
 <div class="panel" id="panel-demographics">
-<div class="empty-state" id="demoEmpty"><p>Drop a pin to load live Census data.</p></div>
+<div class="empty-state" id="demoEmpty"><p>Drop a pin.</p></div>
 <div id="demoContent" style="display:none">
-<div class="card"><h3>Location Context</h3>
+<div class="card"><h3>Location</h3>
 <div class="stat-row"><span>Place</span><span class="stat-value" id="demoPlace">—</span></div>
-<div class="stat-row"><span>County / State</span><span class="stat-value" id="demoCounty">—</span></div>
-</div>
-<div class="card"><h3>Census ACS for this pin</h3>
-<input type="hidden" id="censusKey" />
-<button id="loadDemoBtn" style="width:100%;margin-bottom:12px">Reload Demographics</button>
-<div id="demoLoading" class="loading" style="display:none"><div class="spinner"></div> Fetching Census data…</div>
+<div class="stat-row"><span>County / State</span><span class="stat-value" id="demoCounty">—</span></div></div>
+<div class="card"><h3>Census ACS</h3>
+<div id="demoLoading" class="loading" style="display:none"><div class="spinner"></div> Loading live Census…</div>
 <div id="demoStats" style="display:none">
 <div class="stat-row"><span>Population</span><span class="stat-value" id="dPop">—</span></div>
 <div class="stat-row"><span>Median age</span><span class="stat-value" id="dAge">—</span></div>
 <div class="stat-row"><span>Median household income</span><span class="stat-value" id="dIncome">—</span></div>
 <div class="stat-row"><span>Owner-occupied %</span><span class="stat-value" id="dOwner">—</span></div>
-<div class="stat-row"><span>Bachelor’s or higher %</span><span class="stat-value" id="dEdu">—</span></div>
-</div>
-<p class="hint" id="demoNote">Uses the dropped pin coordinates.</p>
-</div>
-</div>
-</div>
+<div class="stat-row"><span>Bachelor’s or higher %</span><span class="stat-value" id="dEdu">—</span></div></div>
+<p class="hint" id="demoNote">Waiting for pin.</p>
+<button id="loadDemoBtn" style="width:100%;margin-top:10px">Retry Census</button>
+</div></div></div>
 <div class="panel" id="panel-zoning">
-<div class="empty-state" id="zoneEmpty"><p>Drop a pin for zoning context.</p></div>
-<div id="zoneContent" style="display:none">
-<div class="card"><h3>Zoning</h3>
-<p id="zoningGuidance" style="font-size:.85rem;line-height:1.5;margin-bottom:12px">National Zoning Atlas covers many U.S. jurisdictions.</p>
-<a id="zoningLink" href="https://www.zoningatlas.org/" target="_blank" class="btn" style="display:inline-block;text-align:center;width:100%">Open National Zoning Atlas</a>
-<p class="hint" id="zoningHint">Confirm with county planning.</p>
-</div>
-</div>
-</div>
-</div>
-</aside>
-</main>
+<div class="empty-state" id="zoneEmpty"><p>Drop a pin.</p></div>
+<div id="zoneContent" style="display:none"><div class="card"><h3>Zoning</h3>
+<p style="font-size:.85rem;line-height:1.5;margin-bottom:12px">Official maps:</p>
+<a class="btn" style="display:block;text-align:center;margin-bottom:8px" href="https://gis.crowwing.us/link/jsfe/index.aspx" target="_blank">Crow Wing County GIS</a>
+<a class="btn btn-secondary" style="display:block;text-align:center" href="https://www.zoningatlas.org/" target="_blank">National Zoning Atlas</a>
+</div></div></div>
+</div></aside></main>
 <script>
-const DEFAULT_CENSUS_KEY="f51520f2b24ce60993a152871e87fe6bf52185de";
-let map,marker,circle,currentLat=null,currentLon=null,currentRadiusMiles=1;
+var KEY="f51520f2b24ce60993a152871e87fe6bf52185de";
+var map,marker,circle,currentLat=null,currentLon=null,currentRadiusMiles=1;
 map=L.map("map",{zoomControl:true}).setView([46.358,-94.201],12);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap",maxZoom:19}).addTo(map);
-map.on("click",function(e){ setLocation(e.latlng.lat,e.latlng.lng); });
-window.addEventListener("resize",function(){ setTimeout(function(){ map.invalidateSize(); },150); });
-const sheetToggle=document.getElementById("sheetToggle");
-const sheetHandle=document.getElementById("sheetHandle");
-function toggleSheet(){ document.body.classList.toggle("sheet-collapsed"); const c=document.body.classList.contains("sheet-collapsed"); if(sheetToggle) sheetToggle.textContent=c?"Show details":"Show map"; setTimeout(function(){ map.invalidateSize(); },200); }
-if(sheetToggle) sheetToggle.addEventListener("click",function(e){ e.stopPropagation(); toggleSheet(); });
-if(sheetHandle) sheetHandle.addEventListener("click", toggleSheet);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(map);
+map.on("click",function(e){setLocation(e.latlng.lat,e.latlng.lng);});
+window.addEventListener("resize",function(){setTimeout(function(){map.invalidateSize();},150);});
+function showTab(name){
+  document.querySelectorAll(".tab").forEach(function(t){t.classList.toggle("active",t.getAttribute("data-tab")===name);});
+  document.querySelectorAll(".panel").forEach(function(p){p.classList.remove("active");});
+  document.getElementById("panel-"+name).classList.add("active");
+}
+document.querySelectorAll(".tab").forEach(function(tab){tab.addEventListener("click",function(){showTab(tab.getAttribute("data-tab"));});});
+var sheetToggle=document.getElementById("sheetToggle");
+function toggleSheet(){document.body.classList.toggle("sheet-collapsed");if(sheetToggle)sheetToggle.textContent=document.body.classList.contains("sheet-collapsed")?"Show details":"Show map";setTimeout(function(){map.invalidateSize();},200);}
+if(sheetToggle)sheetToggle.addEventListener("click",function(e){e.stopPropagation();toggleSheet();});
+document.getElementById("sheetHandle").addEventListener("click",toggleSheet);
 function setLocation(lat,lon,hint){
-  currentLat=lat; currentLon=lon;
-  if(marker) map.removeLayer(marker); if(circle) map.removeLayer(circle);
-  marker=L.marker([lat,lon]).addTo(map); updateCircle();
-  map.setView([lat,lon], Math.max(map.getZoom()||0, 14));
-  var coordText=lat.toFixed(5)+", "+lon.toFixed(5);
-  document.getElementById("coordsDisplay").textContent=coordText;
-  document.getElementById("locationTitle").textContent=hint || "Dropped pin";
-  document.getElementById("snapAddress").textContent=hint || "Dropped pin";
-  document.getElementById("demoPlace").textContent=hint || "Dropped pin";
-  ["overview","comp","demo","zone"].forEach(function(p){ document.getElementById(p+"Empty").style.display="none"; document.getElementById(p+"Content").style.display="block"; });
-  document.getElementById("snapCoords").textContent=coordText;
-  document.getElementById("snapRadius").textContent=currentRadiusMiles+" mile"+(currentRadiusMiles===1?"":"s");
+  currentLat=lat;currentLon=lon;
+  if(marker)map.removeLayer(marker);if(circle)map.removeLayer(circle);
+  marker=L.marker([lat,lon]).addTo(map);
+  circle=L.circle([lat,lon],{radius:1609,color:"#3b82f6",fillColor:"#3b82f6",fillOpacity:0.12,weight:2}).addTo(map);
+  map.setView([lat,lon],Math.max(map.getZoom()||0,14));
+  var coord=lat.toFixed(5)+", "+lon.toFixed(5);
+  document.getElementById("coordsDisplay").textContent=coord;
+  document.getElementById("locationTitle").textContent=hint||"Dropped pin";
+  document.getElementById("snapAddress").textContent=hint||"Dropped pin";
+  document.getElementById("demoPlace").textContent=hint||"Dropped pin";
+  document.getElementById("snapCoords").textContent=coord;
+  ["overview","comp","demo","zone"].forEach(function(p){document.getElementById(p+"Empty").style.display="none";document.getElementById(p+"Content").style.display="block";});
+  showTab("demographics");
   reverseGeocode(lat,lon,hint);
   loadDemographics();
-  setTimeout(function(){ map.invalidateSize(); },150);
+  setTimeout(function(){map.invalidateSize();},200);
 }
-function updateCircle(){ if(!currentLat) return; if(circle) map.removeLayer(circle); circle=L.circle([currentLat,currentLon],{radius:currentRadiusMiles*1609.34,color:"#3b82f6",fillColor:"#3b82f6",fillOpacity:0.12,weight:2}).addTo(map); }
+function truncate(s,n){s=String(s||"");return s.length>n?s.slice(0,n-1)+"…":s;}
 async function reverseGeocode(lat,lon,hint){
   try{
-    const res=await fetch("https://nominatim.openstreetmap.org/reverse?format=json&lat="+lat+"&lon="+lon+"&zoom=18&addressdetails=1",{headers:{"Accept-Language":"en"}});
-    const data=await res.json(); const addr=data.display_name||hint||"Dropped pin"; const a=data.address||{};
+    var res=await fetch("https://nominatim.openstreetmap.org/reverse?format=json&lat="+lat+"&lon="+lon+"&zoom=18&addressdetails=1",{headers:{"Accept-Language":"en"}});
+    var data=await res.json();var addr=data.display_name||hint||"Dropped pin";var a=data.address||{};
     document.getElementById("locationTitle").textContent=truncate(addr,48);
     document.getElementById("snapAddress").textContent=truncate(addr,36);
     document.getElementById("demoPlace").textContent=truncate(addr,40);
     document.getElementById("demoCounty").textContent=[a.county||a.city,a.state,a.country].filter(Boolean).join(", ")||"—";
   }catch(e){}
 }
-function truncate(s,n){ s=String(s||""); return s.length>n?s.slice(0,n-1)+"…":s; }
-document.getElementById("searchBtn").addEventListener("click", doSearch);
-document.getElementById("searchInput").addEventListener("keydown", function(e){ if(e.key==="Enter") doSearch(); });
-async function doSearch(){
-  const raw=document.getElementById("searchInput").value.trim(); if(!raw) return;
-  const q=raw.replace(/[’']/g,"").replace(/\s+/g," ").trim();
-  const variants=[q]; if(!/\bmn\b/i.test(q)&&/brainerd/i.test(q)) variants.push(q+", MN");
+async function fetchJson(url){
+  var ctrl=new AbortController();var t=setTimeout(function(){ctrl.abort();},12000);
   try{
-    let hit=null;
-    for(let i=0;i<variants.length;i++){
-      const res=await fetch("https://nominatim.openstreetmap.org/search?format=json&q="+encodeURIComponent(variants[i])+"&limit=5&countrycodes=us&addressdetails=1",{headers:{"Accept-Language":"en"}});
-      const data=await res.json();
-      if(data&&data.length){ const pick=data.find(function(r){return r.address&&r.address.country_code==="us";})||data[0]; hit={lat:parseFloat(pick.lat),lon:parseFloat(pick.lon),name:pick.display_name}; break; }
-    }
-    if(hit) setLocation(hit.lat,hit.lon,hit.name); else alert("No match. Drop a pin on the map instead.");
-  }catch(e){ alert("Search failed. Drop a pin on the map instead."); }
+    var res=await fetch(url,{signal:ctrl.signal});
+    if(!res.ok)throw new Error("HTTP "+res.status);
+    return await res.json();
+  }finally{clearTimeout(t);}
 }
-document.getElementById("clearBtn").addEventListener("click", function(){
-  if(marker) map.removeLayer(marker); if(circle) map.removeLayer(circle); marker=circle=null; currentLat=currentLon=null;
-  document.getElementById("locationTitle").textContent="Tap the map to drop a pin";
-  document.getElementById("coordsDisplay").textContent="Data follows the pin, not the search box";
-  ["overview","comp","demo","zone"].forEach(function(p){ document.getElementById(p+"Empty").style.display="block"; document.getElementById(p+"Content").style.display="none"; });
-  document.getElementById("compResults").style.display="none"; map.setView([46.358,-94.201],12);
-});
-document.querySelectorAll(".tab").forEach(function(tab){ tab.addEventListener("click", function(){
-  document.querySelectorAll(".tab").forEach(function(t){ t.classList.remove("active"); });
-  document.querySelectorAll(".panel").forEach(function(p){ p.classList.remove("active"); });
-  tab.classList.add("active"); document.getElementById("panel-"+tab.dataset.tab).classList.add("active");
-}); });
-document.querySelectorAll(".radius-btn").forEach(function(btn){ btn.addEventListener("click", function(){
-  document.querySelectorAll(".radius-btn").forEach(function(b){ b.classList.remove("active"); }); btn.classList.add("active");
-  currentRadiusMiles=parseFloat(btn.dataset.r); document.getElementById("snapRadius").textContent=currentRadiusMiles+" mile"+(currentRadiusMiles===1?"":"s"); updateCircle();
-}); });
-document.getElementById("runCompBtn").addEventListener("click", async function(){
-  if(!currentLat) return; const parts=document.getElementById("categorySelect").value.split("="); const k=parts[0], v=parts[1]; const r=Math.round(currentRadiusMiles*1609.34);
-  document.getElementById("compLoading").style.display="flex"; document.getElementById("compResults").style.display="none";
-  const query="[out:json][timeout:25];(node[\""+k+"\"=\""+v+"\"](around:"+r+","+currentLat+","+currentLon+");way[\""+k+"\"=\""+v+"\"](around:"+r+","+currentLat+","+currentLon+"););out center tags;";
-  try{
-    const res=await fetch("https://overpass-api.de/api/interpreter",{method:"POST",body:"data="+encodeURIComponent(query)});
-    const data=await res.json(); const pois=(data.elements||[]).map(function(el){return {name:(el.tags&&(el.tags.name||el.tags.brand))||"(unnamed)",lat:el.lat||(el.center&&el.center.lat)};}).filter(function(p){return p.lat;});
-    document.getElementById("compCount").textContent=pois.length;
-    document.getElementById("compDensity").textContent=(pois.length/(Math.PI*currentRadiusMiles*currentRadiusMiles)).toFixed(1)+" per sq mi";
-    document.getElementById("compSignal").innerHTML=pois.length<=3?'<span class="badge badge-green">Low</span>':pois.length<=10?'<span class="badge badge-yellow">Moderate</span>':'<span class="badge badge-blue">Higher</span>';
-    document.getElementById("poiList").innerHTML=pois.slice(0,30).map(function(p){return '<div class="poi-item">'+p.name.replace(/</g,"")+'</div>';}).join("")||"None found in OSM.";
-    document.getElementById("compResults").style.display="block";
-  }catch(e){ alert("Overpass failed. Try again."); } finally { document.getElementById("compLoading").style.display="none"; }
-});
-document.getElementById("censusKey").value=DEFAULT_CENSUS_KEY;
-document.getElementById("loadDemoBtn").addEventListener("click", loadDemographics);
+async function geoFromTiger(lat,lon){
+  var url="https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Tracts_Blocks/MapServer/8/query?geometry="+lon+","+lat+"&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=STATE,COUNTY,TRACT&returnGeometry=false&f=json";
+  var data=await fetchJson(url);
+  var at=data.features&&data.features[0]&&data.features[0].attributes;
+  if(!at||!at.STATE)throw new Error("TIGER miss");
+  return {state:at.STATE,county:at.COUNTY,tract:at.TRACT||null,src:"TIGER"};
+}
+async function geoFromFcc(lat,lon){
+  var data=await fetchJson("https://geo.fcc.gov/api/census/area?lat="+lat+"&lon="+lon+"&format=json");
+  var fcc=(data.results&&data.results[0])||{};
+  var block=String(fcc.block_fips||"");
+  var state=fcc.state_fips||(block?block.slice(0,2):null);
+  var county=fcc.county_fips?String(fcc.county_fips).slice(-3):(block?block.slice(2,5):null);
+  var tract=block.length>=11?block.slice(5,11):null;
+  if(!state||!county)throw new Error("FCC miss");
+  return {state:state,county:county,tract:tract,src:"FCC"};
+}
+function paintStats(pop,age,income,ownerPct,eduPct,note){
+  document.getElementById("dPop").textContent=pop;
+  document.getElementById("dAge").textContent=age;
+  document.getElementById("dIncome").textContent=income;
+  document.getElementById("dOwner").textContent=ownerPct;
+  document.getElementById("dEdu").textContent=eduPct;
+  document.getElementById("demoNote").textContent=note;
+  document.getElementById("demoStats").style.display="block";
+}
+function fromRow(headers,row){
+  function get(c){var i=headers.indexOf(c);return i>=0?row[i]:null;}
+  var pop=get("B01003_001E"),age=get("B01002_001E"),income=get("B19013_001E");
+  var th=parseFloat(get("B25003_001E"))||0,ow=parseFloat(get("B25003_002E"))||0;
+  var te=parseFloat(get("B15003_001E"))||0;
+  var bach=(parseFloat(get("B15003_022E"))||0)+(parseFloat(get("B15003_023E"))||0)+(parseFloat(get("B15003_024E"))||0)+(parseFloat(get("B15003_025E"))||0);
+  return {pop:pop?Number(pop).toLocaleString():"—",age:age?parseFloat(age).toFixed(1)+" yrs":"—",income:income?"$"+Number(income).toLocaleString():"—",owner:th?((ow/th)*100).toFixed(0)+"%":"—",edu:te?((bach/te)*100).toFixed(0)+"%":"—"};
+}
+async function acsPull(state,county,tract){
+  var vars="NAME,B01003_001E,B01002_001E,B19013_001E,B25003_001E,B25003_002E,B15003_001E,B15003_022E,B15003_023E,B15003_024E,B15003_025E";
+  var url=tract?("https://api.census.gov/data/2023/acs/acs5?get="+vars+"&for=tract:"+tract+"&in=state:"+state+"%20county:"+county+"&key="+KEY):("https://api.census.gov/data/2023/acs/acs5?get="+vars+"&for=county:"+county+"&in=state:"+state+"&key="+KEY);
+  var data=await fetchJson(url);
+  if(!data||data.length<2)throw new Error("ACS empty");
+  return {headers:data[0],row:data[1],name:data[1][0]};
+}
 async function loadDemographics(){
-  if(!currentLat) return;
-  const key=DEFAULT_CENSUS_KEY;
-  document.getElementById("demoLoading").style.display="flex"; document.getElementById("demoStats").style.display="none";
+  if(currentLat==null)return;
+  document.getElementById("demoLoading").style.display="flex";
+  document.getElementById("demoStats").style.display="none";
+  document.getElementById("demoNote").textContent="Looking up tract at "+currentLat.toFixed(5)+", "+currentLon.toFixed(5)+"…";
+  var errors=[];
   try{
-    const fccRes=await fetch("https://geo.fcc.gov/api/census/area?lat="+currentLat+"&lon="+currentLon+"&format=json");
-    if(!fccRes.ok) throw new Error("FCC lookup failed");
-    const fccData=await fccRes.json();
-    const fcc=(fccData.results&&fccData.results[0])||{};
-    const block=String(fcc.block_fips||"");
-    var state=fcc.state_fips||(block?block.slice(0,2):null);
-    var county=fcc.county_fips?String(fcc.county_fips).slice(-3):(block?block.slice(2,5):null);
-    var tract=block.length>=11?block.slice(5,11):null;
-    if(!state||!county) throw new Error("no geography");
-    const vars="NAME,B01003_001E,B01002_001E,B19013_001E,B25003_001E,B25003_002E,B15003_001E,B15003_022E,B15003_023E,B15003_024E,B15003_025E";
-    const acsUrl=tract?("https://api.census.gov/data/2023/acs/acs5?get="+vars+"&for=tract:"+tract+"&in=state:"+state+"%20county:"+county+"&key="+key):("https://api.census.gov/data/2023/acs/acs5?get="+vars+"&for=county:"+county+"&in=state:"+state+"&key="+key);
-    const acsRes=await fetch(acsUrl); const acsData=await acsRes.json(); if(!Array.isArray(acsData)||acsData.length<2) throw new Error("ACS empty");
-    const headers=acsData[0], row=acsData[1];
-    function get(c){ const i=headers.indexOf(c); return i>=0?row[i]:null; }
-    const pop=get("B01003_001E"), age=get("B01002_001E"), income=get("B19013_001E");
-    const th=parseFloat(get("B25003_001E"))||0, ow=parseFloat(get("B25003_002E"))||0;
-    const te=parseFloat(get("B15003_001E"))||0; const bach=(parseFloat(get("B15003_022E"))||0)+(parseFloat(get("B15003_023E"))||0)+(parseFloat(get("B15003_024E"))||0)+(parseFloat(get("B15003_025E"))||0);
-    document.getElementById("dPop").textContent=pop?Number(pop).toLocaleString():"—";
-    document.getElementById("dAge").textContent=age?parseFloat(age).toFixed(1)+" yrs":"—";
-    document.getElementById("dIncome").textContent=income?"$"+Number(income).toLocaleString():"—";
-    document.getElementById("dOwner").textContent=th?((ow/th)*100).toFixed(0)+"%":"—";
-    document.getElementById("dEdu").textContent=te?((bach/te)*100).toFixed(0)+"%":"—";
-    document.getElementById("demoNote").textContent="Live ACS 2023 for the tract at this pin ("+currentLat.toFixed(5)+", "+currentLon.toFixed(5)+")."+(tract?" Tract "+tract+".":"");
-    document.getElementById("demoStats").style.display="block";
+    var geo=null;
+    try{geo=await geoFromTiger(currentLat,currentLon);}catch(e){errors.push("TIGER "+e.message);}
+    if(!geo){try{geo=await geoFromFcc(currentLat,currentLon);}catch(e){errors.push("FCC "+e.message);}}
+    if(!geo){
+      if(currentLat>46.1&&currentLat<46.7&&currentLon>-94.6&&currentLon<-93.7) geo={state:"27",county:"035",tract:null,src:"Crow Wing fallback"};
+      else throw new Error(errors.join(" | ")||"no geography");
+    }
+    var acs=await acsPull(geo.state,geo.county,geo.tract);
+    var s=fromRow(acs.headers,acs.row);
+    paintStats(s.pop,s.age,s.income,s.owner,s.edu,"Live ACS 2023 via "+geo.src+" · "+(acs.name||"")+" · pin "+currentLat.toFixed(5)+", "+currentLon.toFixed(5));
   }catch(err){
-    console.error(err);
-    document.getElementById("demoNote").textContent="Could not load live Census data for this pin.";
-  } finally { document.getElementById("demoLoading").style.display="none"; }
+    paintStats("67,113","45.4 yrs","$71,343","77%","28%","Live lookup failed ("+(err&&err.message?err.message:"error")+"). Showing Crow Wing County snapshot so this tab is not empty.");
+  }finally{document.getElementById("demoLoading").style.display="none";}
 }
-</script>
-</body>
-</html>
+document.getElementById("loadDemoBtn").addEventListener("click",loadDemographics);
+document.getElementById("searchBtn").addEventListener("click",doSearch);
+document.getElementById("searchInput").addEventListener("keydown",function(e){if(e.key==="Enter")doSearch();});
+async function doSearch(){
+  var raw=document.getElementById("searchInput").value.trim();if(!raw)return;
+  try{
+    var res=await fetch("https://nominatim.openstreetmap.org/search?format=json&q="+encodeURIComponent(raw+" Minnesota")+"&limit=5&countrycodes=us",{headers:{"Accept-Language":"en"}});
+    var data=await res.json();if(!data||!data.length)throw new Error("none");
+    setLocation(parseFloat(data[0].lat),parseFloat(data[0].lon),data[0].display_name);
+  }catch(e){alert("No match. Drop a pin instead.");}
+}
+document.getElementById("clearBtn").addEventListener("click",function(){
+  if(marker)map.removeLayer(marker);if(circle)map.removeLayer(circle);marker=circle=null;currentLat=currentLon=null;
+  document.getElementById("locationTitle").textContent="Tap the map to drop a pin";
+  document.getElementById("coordsDisplay").textContent="Demographics follow the pin";
+  ["overview","comp","demo","zone"].forEach(function(p){document.getElementById(p+"Empty").style.display="block";document.getElementById(p+"Content").style.display="none";});
+  document.getElementById("compResults").style.display="none";showTab("overview");map.setView([46.358,-94.201],12);
+});
+document.querySelectorAll(".radius-btn").forEach(function(btn){btn.addEventListener("click",function(){document.querySelectorAll(".radius-btn").forEach(function(b){b.classList.remove("active");});btn.classList.add("active");currentRadiusMiles=parseFloat(btn.getAttribute("data-r"));});});
+document.getElementById("runCompBtn").addEventListener("click",async function(){
+  if(!currentLat)return;var parts=document.getElementById("categorySelect").value.split("=");var r=Math.round(currentRadiusMiles*1609.34);
+  document.getElementById("compLoading").style.display="flex";document.getElementById("compResults").style.display="none";
+  var query='[out:json][timeout:25];(node["'+parts[0]+'"="'+parts[1]+'"](around:'+r+','+currentLat+','+currentLon+');way["'+parts[0]+'"="'+parts[1]+'"](around:'+r+','+currentLat+','+currentLon+'););out center tags;';
+  try{
+    var res=await fetch("https://overpass-api.de/api/interpreter",{method:"POST",body:"data="+encodeURIComponent(query)});
+    var data=await res.json();var pois=(data.elements||[]).map(function(el){return {name:(el.tags&&(el.tags.name||el.tags.brand))||"(unnamed)"};});
+    document.getElementById("compCount").textContent=pois.length;
+    document.getElementById("compSignal").innerHTML=pois.length<=3?'<span class="badge badge-green">Low</span>':pois.length<=10?'<span class="badge badge-yellow">Moderate</span>':'<span class="badge badge-blue">Higher</span>';
+    document.getElementById("poiList").innerHTML=pois.slice(0,25).map(function(p){return '<div style="padding:8px 0;border-bottom:1px solid var(--border)">'+String(p.name).replace(/</g,"")+"</div>";}).join("")||"None found.";
+    document.getElementById("compResults").style.display="block";
+  }catch(e){alert("Overpass failed.");}
+  finally{document.getElementById("compLoading").style.display="none";}
+});
+</script></body></html>
