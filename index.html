@@ -1,1 +1,289 @@
-see-file
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HyperLocal Insights</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    :root { --bg:#0f1419; --panel:#1a2332; --card:#243044; --accent:#3b82f6; --accent-hover:#2563eb; --text:#e2e8f0; --muted:#94a3b8; --success:#22c55e; --warning:#f59e0b; --border:#334155; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--text); height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+    header { background:var(--panel); border-bottom:1px solid var(--border); padding:10px 14px; display:flex; align-items:center; gap:10px; flex-shrink:0; flex-wrap:wrap; }
+    header h1 { font-size:1.15rem; font-weight:700; } header h1 span { color:var(--accent); }
+    .search-wrap { flex:1; min-width:160px; max-width:420px; display:flex; gap:8px; }
+    .search-wrap input { flex:1; background:var(--card); border:1px solid var(--border); border-radius:8px; padding:8px 14px; color:var(--text); font-size:.9rem; }
+    button,.btn { background:var(--accent); color:#fff; border:none; border-radius:8px; padding:8px 16px; font-size:.875rem; font-weight:600; cursor:pointer; }
+    .btn-secondary { background:var(--card); border:1px solid var(--border); }
+    main { flex:1; display:flex; min-height:0; }
+    #map { flex:1; min-width:0; }
+    .sidebar { width:380px; background:var(--panel); border-left:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
+    .sidebar-header { padding:16px 18px 12px; border-bottom:1px solid var(--border); }
+    .coords { font-size:.75rem; color:var(--muted); font-family:ui-monospace,monospace; }
+    .tabs { display:flex; border-bottom:1px solid var(--border); padding:0 8px; }
+    .tab { flex:1; background:none; border:none; color:var(--muted); padding:12px 8px; font-size:.8rem; font-weight:600; cursor:pointer; border-bottom:2px solid transparent; border-radius:0; }
+    .tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+    .tab-content { flex:1; overflow-y:auto; padding:16px 18px; }
+    .panel { display:none; } .panel.active { display:block; }
+    .card { background:var(--card); border-radius:10px; padding:14px; margin-bottom:12px; border:1px solid var(--border); }
+    .card h3 { font-size:.8rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin-bottom:8px; }
+    .stat-row { display:flex; justify-content:space-between; margin-bottom:6px; }
+    .stat-value { font-weight:600; }
+    .empty-state { text-align:center; padding:40px 20px; color:var(--muted); }
+    .category-select { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); margin-bottom:12px; }
+    .hint { font-size:.75rem; color:var(--muted); margin-top:8px; line-height:1.4; }
+    .loading { display:flex; align-items:center; gap:8px; color:var(--muted); font-size:.875rem; padding:12px 0; }
+    .spinner { width:16px; height:16px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    a { color:var(--accent); text-decoration:none; }
+    .radius-btns { display:flex; gap:6px; margin-bottom:12px; }
+    .radius-btns button { flex:1; padding:6px; font-size:.75rem; background:var(--bg); border:1px solid var(--border); }
+    .radius-btns button.active { background:var(--accent); border-color:var(--accent); }
+    footer { background:var(--panel); border-top:1px solid var(--border); padding:8px 14px; font-size:.65rem; color:var(--muted); display:flex; justify-content:space-between; }
+    .sheet-handle,.map-toggle { display:none; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:999px; font-size:.7rem; font-weight:600; }
+    .badge-green { background:rgba(34,197,94,.2); color:var(--success); }
+    .badge-yellow { background:rgba(245,158,11,.2); color:var(--warning); }
+    .badge-blue { background:rgba(59,130,246,.2); color:var(--accent); }
+    .poi-item { padding:10px 0; border-bottom:1px solid var(--border); font-size:.85rem; }
+    .poi-name { font-weight:600; } .poi-meta { color:var(--muted); font-size:.8rem; }
+    @media (max-width:768px) {
+      html,body { height:100dvh; }
+      header { padding:8px 10px; }
+      .search-wrap { flex:1 1 auto; max-width:none; min-width:0; }
+      .search-wrap input { font-size:16px; }
+      main { position:relative; flex-direction:column; }
+      #map { flex:1 1 auto; width:100%; min-height:0; height:100%; }
+      .sidebar { position:absolute; left:0; right:0; bottom:0; width:100%; height:42%; max-height:42%; border-left:none; border-top:1px solid var(--border); border-radius:16px 16px 0 0; z-index:500; }
+      body.sheet-collapsed .sidebar { height:56px; max-height:56px; }
+      body.sheet-collapsed .tabs, body.sheet-collapsed .tab-content { display:none; }
+      .sheet-handle { display:flex; align-items:center; justify-content:center; gap:10px; padding:8px 12px 0; }
+      .sheet-handle .bar { width:40px; height:4px; background:#64748b; border-radius:999px; }
+      .map-toggle { display:inline-flex; margin-left:auto; background:var(--card); border:1px solid var(--border); font-size:.75rem; padding:4px 10px; }
+      footer { display:none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Hyper<span>Local</span> Insights</h1>
+    <div class="search-wrap">
+      <input id="searchInput" placeholder="e.g. 9807 70th Ave, Brainerd, MN" />
+      <button id="searchBtn">Go</button>
+    </div>
+    <button class="btn-secondary" id="clearBtn">Clear</button>
+  </header>
+  <main>
+    <div id="map"></div>
+    <aside class="sidebar">
+      <div class="sheet-handle" id="sheetHandle"><div class="bar"></div><button type="button" class="map-toggle" id="sheetToggle">Show map</button></div>
+      <div class="sidebar-header">
+        <h2 id="locationTitle">Drop a pin on the map</h2>
+        <div class="coords" id="coordsDisplay">Click anywhere or search an address</div>
+      </div>
+      <div class="tabs">
+        <button class="tab active" data-tab="overview">Overview</button>
+        <button class="tab" data-tab="competitors">Competitors</button>
+        <button class="tab" data-tab="demographics">Demographics</button>
+        <button class="tab" data-tab="zoning">Zoning</button>
+      </div>
+      <div class="tab-content">
+        <div class="panel active" id="panel-overview">
+          <div class="empty-state" id="overviewEmpty"><p>Click the map or search an address.</p></div>
+          <div id="overviewContent" style="display:none">
+            <div class="card"><h3>Quick Snapshot</h3>
+              <div class="stat-row"><span>Location</span><span class="stat-value" id="snapAddress">—</span></div>
+              <div class="stat-row"><span>Lat / Lon</span><span class="stat-value" id="snapCoords">—</span></div>
+              <div class="stat-row"><span>Radius</span><span class="stat-value" id="snapRadius">1 mile</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel" id="panel-competitors">
+          <div class="empty-state" id="compEmpty"><p>Drop a pin first.</p></div>
+          <div id="compContent" style="display:none">
+            <select class="category-select" id="categorySelect">
+              <option value="amenity=cafe">Cafe / Coffee</option>
+              <option value="amenity=restaurant">Restaurant</option>
+              <option value="shop=convenience">Convenience Store</option>
+              <option value="shop=supermarket">Grocery</option>
+              <option value="amenity=pharmacy">Pharmacy</option>
+              <option value="amenity=fuel">Gas Station</option>
+            </select>
+            <div class="radius-btns">
+              <button data-r="0.5" class="radius-btn">0.5 mi</button>
+              <button data-r="1" class="radius-btn active">1 mi</button>
+              <button data-r="2" class="radius-btn">2 mi</button>
+              <button data-r="3" class="radius-btn">3 mi</button>
+            </div>
+            <button id="runCompBtn" style="width:100%;margin-bottom:12px">Scan Competitors</button>
+            <div id="compLoading" class="loading" style="display:none"><div class="spinner"></div> Querying OSM…</div>
+            <div id="compResults" style="display:none">
+              <div class="card"><h3>Density</h3>
+                <div class="stat-row"><span>Found</span><span class="stat-value" id="compCount">0</span></div>
+                <div class="stat-row"><span>Density</span><span class="stat-value" id="compDensity">—</span></div>
+                <div class="stat-row"><span>Signal</span><span class="stat-value" id="compSignal">—</span></div>
+              </div>
+              <div class="card"><h3>Nearby</h3><div id="poiList"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel" id="panel-demographics">
+          <div class="empty-state" id="demoEmpty"><p>Drop a pin, then tap Load Demographics.</p></div>
+          <div id="demoContent" style="display:none">
+            <div class="card"><h3>Location Context</h3>
+              <div class="stat-row"><span>Place</span><span class="stat-value" id="demoPlace">—</span></div>
+              <div class="stat-row"><span>County / State</span><span class="stat-value" id="demoCounty">—</span></div>
+            </div>
+            <div class="card"><h3>Census ACS (live)</h3>
+              <p class="hint" style="margin-bottom:10px">Live ACS 5-year estimates using your Census key.</p>
+              <input type="hidden" id="censusKey" />
+              <button id="loadDemoBtn" style="width:100%;margin-bottom:12px">Load Demographics</button>
+              <div id="demoLoading" class="loading" style="display:none"><div class="spinner"></div> Fetching Census data…</div>
+              <div id="demoStats" style="display:none">
+                <div class="stat-row"><span>Population</span><span class="stat-value" id="dPop">—</span></div>
+                <div class="stat-row"><span>Median age</span><span class="stat-value" id="dAge">—</span></div>
+                <div class="stat-row"><span>Median household income</span><span class="stat-value" id="dIncome">—</span></div>
+                <div class="stat-row"><span>Owner-occupied %</span><span class="stat-value" id="dOwner">—</span></div>
+                <div class="stat-row"><span>Bachelor’s or higher %</span><span class="stat-value" id="dEdu">—</span></div>
+              </div>
+              <p class="hint" id="demoNote">Live ACS 5-year estimates for this pin.</p>
+            </div>
+          </div>
+        </div>
+        <div class="panel" id="panel-zoning">
+          <div class="empty-state" id="zoneEmpty"><p>Drop a pin for zoning context.</p></div>
+          <div id="zoneContent" style="display:none">
+            <div class="card"><h3>Zoning</h3>
+              <p id="zoningGuidance" style="font-size:.85rem;line-height:1.5;margin-bottom:12px">National Zoning Atlas covers many U.S. jurisdictions.</p>
+              <a id="zoningLink" href="https://www.zoningatlas.org/" target="_blank" class="btn" style="display:inline-block;text-align:center;width:100%">Open National Zoning Atlas</a>
+              <p class="hint" id="zoningHint">Rural township coverage can still be limited. Confirm with county planning.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+  <footer><span>HyperLocal Insights</span><span>OSM · Census · Zoning Atlas</span></footer>
+  <script>
+    const DEFAULT_CENSUS_KEY = "f51520f2b24ce60993a152871e87fe6bf52185de";
+    let map, marker, circle, currentLat=null, currentLon=null, currentRadiusMiles=1, currentAddress="", currentCountryCode="";
+    map = L.map("map",{zoomControl:true}).setView([46.358,-94.201],11);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap",maxZoom:19}).addTo(map);
+    map.on("click", e => setLocation(e.latlng.lat, e.latlng.lng));
+    window.addEventListener("resize", () => setTimeout(()=>map.invalidateSize(),150));
+    const sheetToggle=document.getElementById("sheetToggle");
+    const sheetHandle=document.getElementById("sheetHandle");
+    function toggleSheet(){ document.body.classList.toggle("sheet-collapsed"); const c=document.body.classList.contains("sheet-collapsed"); if(sheetToggle) sheetToggle.textContent=c?"Show details":"Show map"; setTimeout(()=>map.invalidateSize(),200); }
+    if(sheetToggle) sheetToggle.addEventListener("click", e => { e.stopPropagation(); toggleSheet(); });
+    if(sheetHandle) sheetHandle.addEventListener("click", toggleSheet);
+    function setLocation(lat,lon,hint){
+      currentLat=lat; currentLon=lon;
+      if(marker) map.removeLayer(marker); if(circle) map.removeLayer(circle);
+      marker=L.marker([lat,lon]).addTo(map); updateCircle(); map.setView([lat,lon], Math.max(map.getZoom(),13));
+      document.getElementById("coordsDisplay").textContent=lat.toFixed(5)+", "+lon.toFixed(5);
+      ["overview","comp","demo","zone"].forEach(p=>{ document.getElementById(p+"Empty").style.display="none"; document.getElementById(p+"Content").style.display="block"; });
+      document.getElementById("snapCoords").textContent=lat.toFixed(5)+", "+lon.toFixed(5);
+      document.getElementById("snapRadius").textContent=currentRadiusMiles+" mile"+(currentRadiusMiles===1?"":"s");
+      reverseGeocode(lat,lon,hint); setTimeout(()=>map.invalidateSize(),150);
+    }
+    function updateCircle(){ if(!currentLat) return; if(circle) map.removeLayer(circle); circle=L.circle([currentLat,currentLon],{radius:currentRadiusMiles*1609.34,color:"#3b82f6",fillColor:"#3b82f6",fillOpacity:0.12,weight:2}).addTo(map); }
+    async function reverseGeocode(lat,lon,hint){
+      try{
+        const res=await fetch("https://nominatim.openstreetmap.org/reverse?format=json&lat="+lat+"&lon="+lon+"&zoom=16&addressdetails=1",{headers:{"Accept-Language":"en"}});
+        const data=await res.json(); const addr=data.display_name||hint||"Selected location"; currentAddress=addr; const a=data.address||{}; currentCountryCode=(a.country_code||"").toLowerCase();
+        document.getElementById("locationTitle").textContent=truncate(addr,48);
+        document.getElementById("snapAddress").textContent=truncate(addr,36);
+        document.getElementById("demoPlace").textContent=truncate(addr,40);
+        document.getElementById("demoCounty").textContent=[a.county||a.city,a.state,a.country].filter(Boolean).join(", ")||"—";
+      }catch(e){ currentAddress=hint||"Selected location"; document.getElementById("locationTitle").textContent=currentAddress; }
+    }
+    function truncate(s,n){ return s.length>n?s.slice(0,n-1)+"…":s; }
+    document.getElementById("searchBtn").addEventListener("click", doSearch);
+    document.getElementById("searchInput").addEventListener("keydown", e => { if(e.key==="Enter") doSearch(); });
+    async function searchNominatimUS(q){
+      const res=await fetch("https://nominatim.openstreetmap.org/search?format=json&q="+encodeURIComponent(q)+"&limit=5&countrycodes=us&addressdetails=1",{headers:{"Accept-Language":"en"}});
+      const data=await res.json(); if(!data||!data.length) return null; const pick=data.find(r=>r.address&&r.address.country_code==="us")||data[0];
+      return {lat:parseFloat(pick.lat), lon:parseFloat(pick.lon), name:pick.display_name};
+    }
+    async function doSearch(){
+      const raw=document.getElementById("searchInput").value.trim(); if(!raw) return;
+      const q=raw.replace(/[’']/g,"").replace(/\s+/g," ").trim();
+      const variants=[q];
+      if(!/\bmn\b/i.test(q) && /brainerd/i.test(q)) variants.push(q+", MN");
+      if(!/,?\s*usa?$/i.test(q)) variants.push(q+", USA");
+      try{
+        let hit=null;
+        for(const v of variants){ hit=await searchNominatimUS(v); if(hit) break; }
+        if(hit) setLocation(hit.lat,hit.lon,hit.name); else alert("No U.S. match. Try: 9807 70th Ave, Brainerd, MN 56401");
+      }catch(e){ alert("Search failed."); }
+    }
+    document.getElementById("clearBtn").addEventListener("click", ()=>{
+      if(marker) map.removeLayer(marker); if(circle) map.removeLayer(circle); marker=circle=null; currentLat=currentLon=null;
+      document.getElementById("locationTitle").textContent="Drop a pin on the map";
+      ["overview","comp","demo","zone"].forEach(p=>{ document.getElementById(p+"Empty").style.display="block"; document.getElementById(p+"Content").style.display="none"; });
+      document.getElementById("compResults").style.display="none"; map.setView([46.358,-94.201],11);
+    });
+    document.querySelectorAll(".tab").forEach(tab=> tab.addEventListener("click", ()=>{
+      document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+      document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+      tab.classList.add("active"); document.getElementById("panel-"+tab.dataset.tab).classList.add("active");
+    }));
+    document.querySelectorAll(".radius-btn").forEach(btn=> btn.addEventListener("click", ()=>{
+      document.querySelectorAll(".radius-btn").forEach(b=>b.classList.remove("active")); btn.classList.add("active");
+      currentRadiusMiles=parseFloat(btn.dataset.r); document.getElementById("snapRadius").textContent=currentRadiusMiles+" mile"+(currentRadiusMiles===1?"":"s"); updateCircle();
+    }));
+    document.getElementById("runCompBtn").addEventListener("click", async ()=>{
+      if(!currentLat) return; const [k,v]=document.getElementById("categorySelect").value.split("="); const r=Math.round(currentRadiusMiles*1609.34);
+      document.getElementById("compLoading").style.display="flex"; document.getElementById("compResults").style.display="none";
+      const query=`[out:json][timeout:25];(node["${k}"="${v}"](around:${r},${currentLat},${currentLon});way["${k}"="${v}"](around:${r},${currentLat},${currentLon}););out center tags;`;
+      try{
+        const res=await fetch("https://overpass-api.de/api/interpreter",{method:"POST",body:"data="+encodeURIComponent(query)});
+        const data=await res.json(); const pois=(data.elements||[]).map(el=>({name:(el.tags&&(el.tags.name||el.tags.brand))||"(unnamed)",lat:el.lat||(el.center&&el.center.lat),lon:el.lon||(el.center&&el.center.lon)})).filter(p=>p.lat);
+        document.getElementById("compCount").textContent=pois.length;
+        const dens=(pois.length/(Math.PI*currentRadiusMiles*currentRadiusMiles)).toFixed(1);
+        document.getElementById("compDensity").textContent=dens+" per sq mi";
+        document.getElementById("compSignal").innerHTML=pois.length<=3?'<span class="badge badge-green">Low</span>':pois.length<=10?'<span class="badge badge-yellow">Moderate</span>':'<span class="badge badge-blue">Higher</span>';
+        document.getElementById("poiList").innerHTML=pois.slice(0,30).map(p=>`<div class="poi-item"><div class="poi-name">${p.name.replace(/</g,"")}</div></div>`).join("")||"None found in OSM.";
+        document.getElementById("compResults").style.display="block";
+      }catch(e){ alert("Overpass failed. Try again."); } finally { document.getElementById("compLoading").style.display="none"; }
+    });
+    const censusKeyInput=document.getElementById("censusKey");
+    if(censusKeyInput && !censusKeyInput.value) censusKeyInput.value=DEFAULT_CENSUS_KEY;
+    document.getElementById("loadDemoBtn").addEventListener("click", loadDemographics);
+    async function loadDemographics(){
+      if(!currentLat) return;
+      const key=(document.getElementById("censusKey").value.trim()||DEFAULT_CENSUS_KEY);
+      document.getElementById("demoLoading").style.display="flex"; document.getElementById("demoStats").style.display="none";
+      try{
+        const fccRes=await fetch("https://geo.fcc.gov/api/census/area?lat="+currentLat+"&lon="+currentLon+"&format=json");
+        if(!fccRes.ok) throw new Error("FCC lookup failed");
+        const fccData=await fccRes.json();
+        const fcc=(fccData.results&&fccData.results[0])||{};
+        const block=String(fcc.block_fips||"");
+        var state=fcc.state_fips||(block?block.slice(0,2):null);
+        var county=fcc.county_fips?String(fcc.county_fips).slice(-3):(block?block.slice(2,5):null);
+        var tract=block.length>=11?block.slice(5,11):null;
+        if(!state||!county) throw new Error("no geography");
+        const vars="NAME,B01003_001E,B01002_001E,B19013_001E,B25003_001E,B25003_002E,B15003_001E,B15003_022E,B15003_023E,B15003_024E,B15003_025E";
+        const acsUrl=tract?("https://api.census.gov/data/2023/acs/acs5?get="+vars+"&for=tract:"+tract+"&in=state:"+state+"%20county:"+county+"&key="+key):("https://api.census.gov/data/2023/acs/acs5?get="+vars+"&for=county:"+county+"&in=state:"+state+"&key="+key);
+        const acsRes=await fetch(acsUrl); const acsData=await acsRes.json(); if(!Array.isArray(acsData)||acsData.length<2) throw new Error("ACS empty");
+        const headers=acsData[0], row=acsData[1]; const get=function(c){ const i=headers.indexOf(c); return i>=0?row[i]:null; };
+        const pop=get("B01003_001E"), age=get("B01002_001E"), income=get("B19013_001E");
+        const th=parseFloat(get("B25003_001E"))||0, ow=parseFloat(get("B25003_002E"))||0;
+        const te=parseFloat(get("B15003_001E"))||0; const bach=(parseFloat(get("B15003_022E"))||0)+(parseFloat(get("B15003_023E"))||0)+(parseFloat(get("B15003_024E"))||0)+(parseFloat(get("B15003_025E"))||0);
+        document.getElementById("dPop").textContent=pop?Number(pop).toLocaleString():"—";
+        document.getElementById("dAge").textContent=age?parseFloat(age).toFixed(1)+" yrs":"—";
+        document.getElementById("dIncome").textContent=income?"$"+Number(income).toLocaleString():"—";
+        document.getElementById("dOwner").textContent=th?((ow/th)*100).toFixed(0)+"%":"—";
+        document.getElementById("dEdu").textContent=te?((bach/te)*100).toFixed(0)+"%":"—";
+        document.getElementById("demoNote").textContent="Live ACS 5-year (2023) for "+(tract?"Census Tract "+tract:"county")+". Estimates.";
+        document.getElementById("demoStats").style.display="block";
+      }catch(err){
+        console.error(err);
+        document.getElementById("demoNote").textContent="Could not load live Census data. Try again in a moment.";
+      } finally { document.getElementById("demoLoading").style.display="none"; }
+    }
+  </script>
+</body>
+</html>
