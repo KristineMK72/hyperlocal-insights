@@ -358,14 +358,13 @@
         const tractFips = fips.substring(5, 11);
 
         // Target ACS 5-year variables:
-        // B01003_001E: Total Pop
-        // B01002_001E: Median Age
-        // B19013_001E: Median Household Income
+        // B01003_001E: Total Pop, B01002_001E: Median Age, B19013_001E: Median Household Income
         // B25003_001E: Total Occupied, B25003_002E: Owner Occupied
         // B15003_022E: Bachelor's, B15003_001E: Total Educated 25+
         // B17001_002E: Poverty Count, B17001_001E: Total Pop for Poverty
         // B25077_001E: Median Home Value, B25064_001E: Median Gross Rent
-        const vars = 'B01003_001E,B01002_001E,B19013_001E,B25003_001E,B25003_002E,B15003_022E,B15003_001E,B17001_002E,B17001_001E,B25077_001E,B25064_001E';
+        // B08013_001E: Aggregate Commute Time, B08301_001E: Total Workers, B08301_021E: Worked From Home
+        const vars = 'B01003_001E,B01002_001E,B19013_001E,B25003_001E,B25003_002E,B15003_022E,B15003_001E,B17001_002E,B17001_001E,B25077_001E,B25064_001E,B08013_001E,B08301_001E,B08301_021E';
         
         let acsData = null;
         const localKey = localStorage.getItem('hyperlocal_census_key');
@@ -400,12 +399,23 @@
           const povertyBase = parseInt(row[8]) || 1;
           const homeVal = parseInt(row[9]) || 0;
           const rentVal = parseInt(row[10]) || 0;
+          
+          // New Mobility Data (Indices 11, 12, 13)
+          const aggCommuteTime = parseInt(row[11]) || 0;
+          const totalWorkers = parseInt(row[12]) || 0;
+          const wfhWorkers = parseInt(row[13]) || 0;
 
+          // Standard Calculations
           const homeownershipPct = occUnits > 0 ? Math.round((ownerUnits / occUnits) * 100) : 0;
           const bachelorPct = Math.round((bachelors / eduBase) * 100);
           const povertyPct = Math.round((povertyPop / povertyBase) * 100);
+          
+          // Mobility Calculations
+          const commutingWorkers = totalWorkers - wfhWorkers;
+          const meanCommute = commutingWorkers > 0 ? Math.round(aggCommuteTime / commutingWorkers) : 0;
+          const wfhPct = totalWorkers > 0 ? Math.round((wfhWorkers / totalWorkers) * 100) : 0;
 
-          // Update UI
+          // Update UI: Snapshot Tab
           document.getElementById('m-pop').innerText = pop.toLocaleString();
           document.getElementById('m-age').innerText = age > 0 ? `${age} yrs` : 'N/A';
           document.getElementById('m-income').innerText = income > 0 ? `$${income.toLocaleString()}` : 'N/A';
@@ -413,9 +423,14 @@
           document.getElementById('m-edu').innerText = `${bachelorPct}%`;
           document.getElementById('m-poverty').innerText = `${povertyPct}%`;
 
+          // Update UI: Housing Tab
           document.getElementById('h-units').innerText = occUnits.toLocaleString();
           document.getElementById('h-val').innerText = homeVal > 0 ? `$${homeVal.toLocaleString()}` : 'N/A';
           document.getElementById('h-rent').innerText = rentVal > 0 ? `$${rentVal.toLocaleString()}/mo` : 'N/A';
+          
+          // Update UI: Mobility Tab
+          document.getElementById('m-commute').innerText = meanCommute > 0 ? `${meanCommute} min` : 'N/A';
+          document.getElementById('m-wfh').innerText = `${wfhPct}%`;
 
           generateSignals({ income, homeownershipPct, bachelorPct, povertyPct, age });
           document.getElementById('apiStatus').innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Census Synced';
@@ -464,7 +479,7 @@
       }).join('');
     }
 
-    // Overpass Competitor POI Fetcher
+    // Overpass Competitor POI Fetcher (UPDATED TO POST REQUEST)
     document.getElementById('fetchPoisBtn').addEventListener('click', async () => {
       state.poiLayer.clearLayers();
       const poiList = document.getElementById('poiDetailList');
@@ -472,16 +487,21 @@
 
       const radiusMeters = state.radius;
       const query = `
-        [out:json][timeout:15];
+        [out:json][timeout:25];
         (
           node["amenity"~"restaurant|fast_food|cafe|fuel|bank|pharmacy"](around:${radiusMeters},${state.lat},${state.lng});
           node["shop"~"supermarket|convenience"](around:${radiusMeters},${state.lat},${state.lng});
         );
-        out body 35;
+        out body;
       `;
 
       try {
-        const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
+        const res = await fetch(`https://overpass-api.de/api/interpreter`, {
+          method: 'POST',
+          body: query
+        });
+        
+        if (!res.ok) throw new Error(`Server returned ${res.status}`);
         const data = await res.json();
         
         let foodCount = 0;
@@ -489,35 +509,40 @@
         let serviceCount = 0;
         poiList.innerHTML = '';
 
-        data.elements.forEach(el => {
-          const name = el.tags.name || 'Unnamed';
-          const type = el.tags.amenity || el.tags.shop;
-          
-          if (['restaurant', 'fast_food', 'cafe'].includes(type)) foodCount++;
-          else if (['supermarket', 'convenience'].includes(type)) retailCount++;
-          else serviceCount++;
+        if (!data.elements || data.elements.length === 0) {
+           poiList.innerHTML = '<li class="py-2 text-slate-400">No competitors found within this radius.</li>';
+        } else {
+          data.elements.forEach(el => {
+            const name = el.tags.name || 'Unnamed Business';
+            const type = el.tags.amenity || el.tags.shop;
+            
+            if (['restaurant', 'fast_food', 'cafe'].includes(type)) foodCount++;
+            else if (['supermarket', 'convenience'].includes(type)) retailCount++;
+            else serviceCount++;
 
-          // Add to map
-          L.circleMarker([el.lat, el.lon], {
-            radius: 5,
-            color: '#f59e0b',
-            fillColor: '#f59e0b',
-            fillOpacity: 0.8
-          }).bindPopup(`<b>${name}</b><br/><span class="text-xs text-slate-600">${type}</span>`).addTo(state.poiLayer);
+            // Add to map
+            L.circleMarker([el.lat, el.lon], {
+              radius: 6,
+              color: '#f59e0b',
+              fillColor: '#f59e0b',
+              fillOpacity: 0.8
+            }).bindPopup(`<b>${name}</b><br/><span class="text-xs text-slate-600 capitalize">${type.replace('_', ' ')}</span>`).addTo(state.poiLayer);
 
-          // Add to list
-          const li = document.createElement('li');
-          li.className = 'py-2 flex justify-between items-center text-xs';
-          li.innerHTML = `<span>${name}</span><span class="text-slate-400 capitalize bg-dark-900 px-1.5 py-0.5 rounded">${type.replace('_', ' ')}</span>`;
-          poiList.appendChild(li);
-        });
+            // Add to list
+            const li = document.createElement('li');
+            li.className = 'py-2 flex justify-between items-center text-xs';
+            li.innerHTML = `<span>${name}</span><span class="text-slate-400 capitalize bg-dark-900 px-1.5 py-0.5 rounded">${type.replace('_', ' ')}</span>`;
+            poiList.appendChild(li);
+          });
+        }
 
         document.getElementById('poi-food').innerText = foodCount;
         document.getElementById('poi-retail').innerText = retailCount;
         document.getElementById('poi-services').innerText = serviceCount;
 
       } catch (e) {
-        poiList.innerHTML = '<li class="py-2 text-rose-400">Failed to load Overpass POIs.</li>';
+        console.error("Overpass Error:", e);
+        poiList.innerHTML = `<li class="py-2 text-rose-400">Failed to load POIs. The public Overpass server might be busy.</li>`;
       }
     });
 
