@@ -6,7 +6,294 @@
   <title>HyperLocal Insights | Spatial Intelligence</title>
   
   <!-- Tailwind CSS & Lucide Icons -->
+  <script src="https://cdn.tailwindcss.com"></script><!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HyperLocal Insights | Spatial Intelligence</title>
+  
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { colors: { brand: { 500: '#3b82f6' }, dark: { 900: '#0b0f19', 800: '#111827', 700: '#1f2937' } } } }
+    };
+  </script>
+  <style>
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+  </style>
+</head>
+<body class="bg-dark-900 text-slate-100 flex flex-col h-screen overflow-hidden select-none">
+
+  <header class="bg-dark-800 border-b border-dark-700 px-4 py-2.5 flex items-center justify-between shrink-0 shadow-md z-30">
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/30">
+        <i data-lucide="map-pin" class="w-4 h-4"></i>
+      </div>
+      <div>
+        <h1 class="text-base font-bold tracking-tight text-white flex items-center gap-1.5">
+          HyperLocal <span class="text-blue-500 font-semibold">Insights</span>
+        </h1>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2 max-w-xl w-full mx-4">
+      <div class="relative flex-1">
+        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+        <input id="searchInput" type="text" placeholder="Search address..." class="w-full pl-9 pr-4 py-1.5 bg-dark-900 border border-dark-700 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-blue-500" />
+      </div>
+      <button id="searchBtn" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold">Go</button>
+      <button id="censusKeyBtn" class="px-3 py-1.5 bg-dark-700 hover:bg-dark-600 border border-slate-700 text-slate-300 rounded-lg text-xs font-medium flex items-center gap-1.5">
+        <i data-lucide="key" class="w-3.5 h-3.5 text-yellow-400"></i> API Key
+      </button>
+    </div>
+
+    <div class="flex items-center gap-2 text-xs text-slate-400">
+      <span>Buffer:</span>
+      <select id="bufferRadius" class="bg-dark-900 border border-dark-700 text-slate-200 rounded px-2 py-1 focus:outline-none">
+        <option value="1609" selected>1.0 mi</option>
+        <option value="4828">3.0 mi</option>
+        <option value="8046">5.0 mi</option>
+      </select>
+    </div>
+  </header>
+
+  <main class="flex-1 flex overflow-hidden">
+    <section id="map" class="flex-1 h-full z-10 bg-slate-950"></section>
+
+    <aside class="w-[480px] bg-dark-800 border-l border-dark-700 flex flex-col h-full shrink-0 shadow-2xl z-20">
+      <div class="p-4 border-b border-dark-700 bg-dark-800/90">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <h2 id="locTitle" class="text-sm font-semibold text-slate-100">Pin an address</h2>
+            <p id="locSub" class="text-xs text-slate-400 mt-0.5">Click the map</p>
+          </div>
+          <span id="locCoords" class="text-[10px] font-mono text-slate-500 bg-dark-900 px-2 py-0.5 rounded border border-dark-700">46.395, -94.158</span>
+        </div>
+      </div>
+
+      <!-- Updated Tabs with Economy -->
+      <div class="flex items-center border-b border-dark-700 bg-dark-900/50 px-2 text-xs font-medium text-slate-400 overflow-x-auto custom-scrollbar">
+        <button data-tab="snapshot" class="tab-btn active px-3 py-2 text-blue-400 border-b-2 border-blue-500 flex items-center gap-1.5"><i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>Snapshot</button>
+        <button data-tab="signals" class="tab-btn px-3 py-2 hover:text-slate-200 flex items-center gap-1.5"><i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>Signals</button>
+        <button data-tab="economy" class="tab-btn px-3 py-2 hover:text-slate-200 flex items-center gap-1.5"><i data-lucide="trending-up" class="w-3.5 h-3.5 text-emerald-400"></i>Economy</button>
+        <button data-tab="housing" class="tab-btn px-3 py-2 hover:text-slate-200 flex items-center gap-1.5"><i data-lucide="home" class="w-3.5 h-3.5"></i>Housing</button>
+        <button data-tab="mobility" class="tab-btn px-3 py-2 hover:text-slate-200 flex items-center gap-1.5"><i data-lucide="car" class="w-3.5 h-3.5"></i>Mobility</button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-4">
+        
+        <!-- SNAPSHOT -->
+        <div id="tab-snapshot" class="tab-content space-y-4">
+          <div class="grid grid-cols-2 gap-2.5">
+            <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg"><span class="text-xs text-slate-400">Population</span><p id="m-pop" class="text-lg font-bold text-white mt-1">—</p></div>
+            <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg"><span class="text-xs text-slate-400">Median Age</span><p id="m-age" class="text-lg font-bold text-white mt-1">—</p></div>
+            <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg"><span class="text-xs text-slate-400">HH Income</span><p id="m-income" class="text-lg font-bold text-emerald-400 mt-1">—</p></div>
+            <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg"><span class="text-xs text-slate-400">Homeownership</span><p id="m-ownership" class="text-lg font-bold text-blue-400 mt-1">—</p></div>
+            <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg"><span class="text-xs text-slate-400">Bachelor's+</span><p id="m-edu" class="text-lg font-bold text-indigo-300 mt-1">—</p></div>
+            <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg"><span class="text-xs text-slate-400">Poverty Rate</span><p id="m-poverty" class="text-lg font-bold text-rose-400 mt-1">—</p></div>
+          </div>
+        </div>
+
+        <!-- SIGNALS -->
+        <div id="tab-signals" class="tab-content hidden space-y-3">
+          <span class="text-[11px] uppercase text-slate-400">Automated Evaluation</span>
+          <div id="signalList" class="space-y-2"></div>
+        </div>
+
+        <!-- NEW FRED ECONOMY TAB -->
+        <div id="tab-economy" class="tab-content hidden space-y-3">
+          <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-400">National Macro Indicators</span>
+          <div class="grid grid-cols-2 gap-2.5">
+            <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg">
+              <span class="text-xs text-slate-400">30-Yr Mortgage</span>
+              <p id="f-mortgage" class="text-lg font-bold text-white mt-1">...</p>
+              <p id="f-mortgage-date" class="text-[9px] text-slate-500 mt-0.5">Fetching</p>
+            </div>
+            <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg">
+              <span class="text-xs text-slate-400">Unemployment</span>
+              <p id="f-unemp" class="text-lg font-bold text-white mt-1">...</p>
+              <p id="f-unemp-date" class="text-[9px] text-slate-500 mt-0.5">Fetching</p>
+            </div>
+            <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg">
+              <span class="text-xs text-slate-400">Inflation (CPI)</span>
+              <p id="f-cpi" class="text-lg font-bold text-white mt-1">...</p>
+              <p id="f-cpi-date" class="text-[9px] text-slate-500 mt-0.5">Fetching</p>
+            </div>
+            <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg">
+              <span class="text-xs text-slate-400">Fed Funds Rate</span>
+              <p id="f-fed" class="text-lg font-bold text-white mt-1">...</p>
+              <p id="f-fed-date" class="text-[9px] text-slate-500 mt-0.5">Fetching</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- HOUSING -->
+        <div id="tab-housing" class="tab-content hidden space-y-3">
+          <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg space-y-2 text-xs">
+            <div class="flex justify-between"><span class="text-slate-400">Housing Units</span><span id="h-units" class="font-bold text-white">—</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Median Value</span><span id="h-val" class="font-bold text-white">—</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Median Rent</span><span id="h-rent" class="font-bold text-white">—</span></div>
+          </div>
+        </div>
+
+        <!-- MOBILITY -->
+        <div id="tab-mobility" class="tab-content hidden space-y-3">
+          <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg space-y-2 text-xs">
+            <div class="flex justify-between"><span class="text-slate-400">Mean Commute</span><span id="m-commute" class="font-bold text-white">—</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Work From Home</span><span id="m-wfh" class="font-bold text-white">—</span></div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="p-3 border-t border-dark-700 text-[11px] text-slate-500 flex justify-between bg-dark-900">
+        <span>Spatialytics HyperLocal Engine</span>
+        <span id="apiStatus" class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Ready</span>
+      </footer>
+    </aside>
+  </main>
+
+  <!-- Key Modal -->
+  <div id="keyModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-dark-800 border border-dark-700 rounded-xl p-5 max-w-md w-full shadow-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-sm font-bold text-white">Census API Key</h3>
+        <button id="closeModalBtn" class="text-slate-400"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+      <input id="keyInput" type="password" placeholder="Paste Census key..." class="w-full px-3 py-2 bg-dark-900 border border-dark-700 rounded-lg text-xs text-slate-100 mb-4" />
+      <div class="flex justify-end gap-2">
+        <button id="saveKeyBtn" class="px-4 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white rounded-lg">Save Key</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+    const state = { lat: 46.39489, lng: -94.15844, radius: 1609, marker: null, circle: null };
+    const map = L.map('map').setView([state.lat, state.lng], 13);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+    function updatePin(lat, lng) {
+      state.lat = lat; state.lng = lng;
+      if (state.marker) map.removeLayer(state.marker);
+      if (state.circle) map.removeLayer(state.circle);
+      state.marker = L.marker([lat, lng]).addTo(map);
+      state.circle = L.circle([lat, lng], { radius: state.radius, color: '#3b82f6', fillOpacity: 0.15 }).addTo(map);
+      document.getElementById('locCoords').innerText = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      fetchCensusData(lat, lng);
+    }
+
+    map.on('click', (e) => updatePin(e.latlng.lat, e.latlng.lng));
+
+    async function fetchCensusData(lat, lng) {
+      try {
+        const fccRes = await fetch(`https://geo.fcc.gov/api/census/block/find?latitude=${lat}&longitude=${lng}&format=json`);
+        const { Block } = await fccRes.json();
+        const vars = 'B01003_001E,B01002_001E,B19013_001E,B25003_001E,B25003_002E,B15003_022E,B15003_001E,B17001_002E,B17001_001E,B25077_001E,B25064_001E,B08013_001E,B08301_001E,B08301_021E';
+        
+        let url = `/api/census?state=${Block.FIPS.substring(0,2)}&county=${Block.FIPS.substring(2,5)}&tract=${Block.FIPS.substring(5,11)}&vars=${vars}`;
+        let res = await fetch(url);
+        
+        if (!res.ok) {
+           const key = localStorage.getItem('hyperlocal_census_key') || '';
+           url = `https://api.census.gov/data/2022/acs/acs5?get=${vars}&for=tract:${Block.FIPS.substring(5,11)}&in=state:${Block.FIPS.substring(0,2)}+county:${Block.FIPS.substring(2,5)}&key=${key}`;
+           res = await fetch(url);
+        }
+        
+        const data = await res.json();
+        if (data[1]) {
+          const row = data[1];
+          const occUnits = parseInt(row[3]) || 0;
+          const ownerUnits = parseInt(row[4]) || 0;
+          const totalWorkers = parseInt(row[12]) || 0;
+          const wfhWorkers = parseInt(row[13]) || 0;
+          
+          document.getElementById('m-pop').innerText = parseInt(row[0]).toLocaleString();
+          document.getElementById('m-age').innerText = `${parseFloat(row[1])} yrs`;
+          document.getElementById('m-income').innerText = `$${parseInt(row[2]).toLocaleString()}`;
+          document.getElementById('m-ownership').innerText = `${occUnits ? Math.round((ownerUnits/occUnits)*100) : 0}%`;
+          document.getElementById('m-edu').innerText = `${Math.round((parseInt(row[5])/(parseInt(row[6])||1))*100)}%`;
+          document.getElementById('m-poverty').innerText = `${Math.round((parseInt(row[7])/(parseInt(row[8])||1))*100)}%`;
+          
+          document.getElementById('h-units').innerText = occUnits.toLocaleString();
+          document.getElementById('h-val').innerText = `$${parseInt(row[9]).toLocaleString()}`;
+          document.getElementById('h-rent').innerText = `$${parseInt(row[10]).toLocaleString()}/mo`;
+          
+          document.getElementById('m-commute').innerText = `${totalWorkers > wfhWorkers ? Math.round(parseInt(row[11]) / (totalWorkers - wfhWorkers)) : 0} min`;
+          document.getElementById('m-wfh').innerText = `${totalWorkers ? Math.round((wfhWorkers/totalWorkers)*100) : 0}%`;
+          
+          generateSignals(parseInt(row[2]), occUnits ? (ownerUnits/occUnits)*100 : 0);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function generateSignals(income, ownership) {
+      let html = '';
+      if (income >= 75000) html += `<div class="bg-dark-900 p-3 rounded flex gap-2"><span class="w-2 h-2 rounded-full bg-emerald-500 mt-1"></span><span class="text-xs">Strong purchasing power</span></div>`;
+      if (ownership >= 65) html += `<div class="bg-dark-900 p-3 rounded flex gap-2"><span class="w-2 h-2 rounded-full bg-emerald-500 mt-1"></span><span class="text-xs">High residential stability</span></div>`;
+      document.getElementById('signalList').innerHTML = html || '<span class="text-xs text-slate-500">No strong signals detected.</span>';
+    }
+
+    // Fetch FRED Data on Load
+    async function fetchFredData() {
+      const series = [
+        { id: 'MORTGAGE30US', el: 'f-mortgage', format: v => `${v}%` },
+        { id: 'UNRATE', el: 'f-unemp', format: v => `${v}%` },
+        { id: 'CPIAUCSL', el: 'f-cpi', format: v => v },
+        { id: 'FEDFUNDS', el: 'f-fed', format: v => `${v}%` }
+      ];
+
+      for (const s of series) {
+        try {
+          const res = await fetch(`/api/fred?series=${s.id}`);
+          if (res.ok) {
+            const data = await res.json();
+            document.getElementById(s.el).innerText = s.format(data.value);
+            document.getElementById(`${s.el}-date`).innerText = `As of ${data.date}`;
+          } else {
+            document.getElementById(s.el).innerText = "Error";
+          }
+        } catch (e) {
+          document.getElementById(s.el).innerText = "Failed";
+        }
+      }
+    }
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => {
+          b.classList.remove('text-blue-400', 'border-b-2', 'border-blue-500');
+          b.classList.add('text-slate-400');
+        });
+        btn.classList.add('text-blue-400', 'border-b-2', 'border-blue-500');
+        btn.classList.remove('text-slate-400');
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+        document.getElementById(`tab-${btn.dataset.tab}`).classList.remove('hidden');
+      });
+    });
+
+    const keyModal = document.getElementById('keyModal');
+    document.getElementById('censusKeyBtn').addEventListener('click', () => keyModal.classList.remove('hidden'));
+    document.getElementById('closeModalBtn').addEventListener('click', () => keyModal.classList.add('hidden'));
+    document.getElementById('saveKeyBtn').addEventListener('click', () => {
+      localStorage.setItem('hyperlocal_census_key', document.getElementById('keyInput').value);
+      keyModal.classList.add('hidden');
+      fetchCensusData(state.lat, state.lng);
+    });
+
+    updatePin(state.lat, state.lng);
+    fetchFredData(); // Run FRED fetch immediately on load
+  </script>
+</body>
+</html>
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Leaflet CSS & JS -->
