@@ -5,24 +5,36 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>HyperLocal Insights | Spatial Intelligence</title>
   
+  <!-- Tailwind CSS & Lucide Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Leaflet CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
     tailwind.config = {
       darkMode: 'class',
-      theme: { extend: { colors: { brand: { 500: '#3b82f6' }, dark: { 900: '#0b0f19', 800: '#111827', 700: '#1f2937' } } } }
+      theme: {
+        extend: {
+          colors: {
+            brand: { 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' },
+            dark: { 900: '#0b0f19', 800: '#111827', 700: '#1f2937', 600: '#374151' }
+          }
+        }
+      }
     };
   </script>
   <style>
     .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
   </style>
 </head>
 <body class="bg-dark-900 text-slate-100 flex flex-col h-screen overflow-hidden select-none">
 
+  <!-- Top Navigation -->
   <header class="bg-dark-800 border-b border-dark-700 px-4 py-2.5 flex items-center justify-between shrink-0 shadow-md z-30">
     <div class="flex items-center gap-2">
       <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/30">
@@ -35,20 +47,30 @@
       </div>
     </div>
 
+    <!-- Search Bar -->
     <div class="flex items-center gap-2 max-w-xl w-full mx-4">
       <div class="relative flex-1">
         <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
-        <input id="searchInput" type="text" placeholder="Search address..." class="w-full pl-9 pr-4 py-1.5 bg-dark-900 border border-dark-700 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-blue-500" />
+        <input id="searchInput" type="text" placeholder="Search address, city, or zip (e.g. 9807 70th Ave, Brainerd MN)..."
+          class="w-full pl-9 pr-4 py-1.5 bg-dark-900 border border-dark-700 rounded-lg text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition" />
       </div>
-      <button id="searchBtn" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold">Go</button>
-      <button id="censusKeyBtn" class="px-3 py-1.5 bg-dark-700 hover:bg-dark-600 border border-slate-700 text-slate-300 rounded-lg text-xs font-medium flex items-center gap-1.5">
-        <i data-lucide="key" class="w-3.5 h-3.5 text-yellow-400"></i> API Key
+      <button id="searchBtn" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold tracking-wide transition shadow-sm flex items-center gap-1">
+        Go
+      </button>
+      <button id="censusKeyBtn" class="px-3 py-1.5 bg-dark-700 hover:bg-dark-600 border border-slate-700 text-slate-300 rounded-lg text-xs font-medium transition flex items-center gap-1.5">
+        <i data-lucide="key" class="w-3.5 h-3.5 text-yellow-400"></i>
+        <span>API Key</span>
+      </button>
+      <button id="clearBtn" class="px-3 py-1.5 bg-dark-700 hover:bg-dark-600 text-slate-300 rounded-lg text-xs font-medium transition">
+        Clear
       </button>
     </div>
 
+    <!-- Buffer Selector -->
     <div class="flex items-center gap-2 text-xs text-slate-400">
       <span>Buffer:</span>
       <select id="bufferRadius" class="bg-dark-900 border border-dark-700 text-slate-200 rounded px-2 py-1 focus:outline-none">
+        <option value="804">0.5 mi</option>
         <option value="1609" selected>1.0 mi</option>
         <option value="4828">3.0 mi</option>
         <option value="8046">5.0 mi</option>
@@ -56,21 +78,27 @@
     </div>
   </header>
 
+  <!-- Main Content Layout -->
   <main class="flex-1 flex overflow-hidden">
+    
+    <!-- Leaflet Map Container -->
     <section id="map" class="flex-1 h-full z-10 bg-slate-950"></section>
 
+    <!-- Sidebar Insights Panel -->
     <aside class="w-[480px] bg-dark-800 border-l border-dark-700 flex flex-col h-full shrink-0 shadow-2xl z-20">
-      <div class="p-4 border-b border-dark-700 bg-dark-800/90">
+      
+      <!-- Location Header Bar -->
+      <div class="p-4 border-b border-dark-700 bg-dark-800/90 backdrop-blur">
         <div class="flex items-start justify-between gap-2">
           <div>
-            <h2 id="locTitle" class="text-sm font-semibold text-slate-100">Pin an address</h2>
-            <p id="locSub" class="text-xs text-slate-400 mt-0.5">Click the map</p>
+            <h2 id="locTitle" class="text-sm font-semibold text-slate-100 line-clamp-1 leading-snug">Pin an address or click the map</h2>
+            <p id="locSub" class="text-xs text-slate-400 mt-0.5 line-clamp-1">Crow Wing County, MN</p>
           </div>
-          <span id="locCoords" class="text-[10px] font-mono text-slate-500 bg-dark-900 px-2 py-0.5 rounded border border-dark-700">46.395, -94.158</span>
+          <span id="locCoords" class="text-[10px] font-mono text-slate-500 bg-dark-900 px-2 py-0.5 rounded border border-dark-700 shrink-0">46.395, -94.158</span>
         </div>
       </div>
 
-      <!-- Updated Tabs with Economy -->
+      <!-- Navigation Tabs -->
       <div class="flex items-center border-b border-dark-700 bg-dark-900/50 px-2 text-xs font-medium text-slate-400 overflow-x-auto custom-scrollbar">
         <button data-tab="snapshot" class="tab-btn active px-3 py-2 text-blue-400 border-b-2 border-blue-500 flex items-center gap-1.5"><i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>Snapshot</button>
         <button data-tab="signals" class="tab-btn px-3 py-2 hover:text-slate-200 flex items-center gap-1.5"><i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>Signals</button>
@@ -79,168 +107,396 @@
         <button data-tab="mobility" class="tab-btn px-3 py-2 hover:text-slate-200 flex items-center gap-1.5"><i data-lucide="car" class="w-3.5 h-3.5"></i>Mobility</button>
       </div>
 
+      <!-- Tab Content Area -->
       <div class="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-4">
-        
-        <!-- SNAPSHOT -->
+
+        <!-- TAB: SNAPSHOT -->
         <div id="tab-snapshot" class="tab-content space-y-4">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-400">Tract Community Metrics</span>
+            <span id="censusBadge" class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700">ACS 5-Year</span>
+          </div>
+
           <div class="grid grid-cols-2 gap-2.5">
-            <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg"><span class="text-xs text-slate-400">Population</span><p id="m-pop" class="text-lg font-bold text-white mt-1">—</p></div>
-            <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg"><span class="text-xs text-slate-400">Median Age</span><p id="m-age" class="text-lg font-bold text-white mt-1">—</p></div>
-            <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg"><span class="text-xs text-slate-400">HH Income</span><p id="m-income" class="text-lg font-bold text-emerald-400 mt-1">—</p></div>
-            <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg"><span class="text-xs text-slate-400">Homeownership</span><p id="m-ownership" class="text-lg font-bold text-blue-400 mt-1">—</p></div>
-            <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg"><span class="text-xs text-slate-400">Bachelor's+</span><p id="m-edu" class="text-lg font-bold text-indigo-300 mt-1">—</p></div>
-            <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg"><span class="text-xs text-slate-400">Poverty Rate</span><p id="m-poverty" class="text-lg font-bold text-rose-400 mt-1">—</p></div>
+            <div class="bg-dark-900/90 border border-dark-700 p-3 rounded-lg">
+              <span class="text-xs text-slate-400">Total Population</span>
+              <p id="m-pop" class="text-lg font-bold text-white mt-1">—</p>
+            </div>
+            <div class="bg-dark-900/90 border border-dark-700 p-3 rounded-lg">
+              <span class="text-xs text-slate-400">Median Age</span>
+              <p id="m-age" class="text-lg font-bold text-white mt-1">—</p>
+            </div>
+            <div class="bg-dark-900/90 border border-dark-700 p-3 rounded-lg">
+              <span class="text-xs text-slate-400">Median HH Income</span>
+              <p id="m-income" class="text-lg font-bold text-emerald-400 mt-1">—</p>
+            </div>
+            <div class="bg-dark-900/90 border border-dark-700 p-3 rounded-lg">
+              <span class="text-xs text-slate-400">Homeownership</span>
+              <p id="m-ownership" class="text-lg font-bold text-blue-400 mt-1">—</p>
+            </div>
+            <div class="bg-dark-900/90 border border-dark-700 p-3 rounded-lg">
+              <span class="text-xs text-slate-400">Bachelor's Degree+</span>
+              <p id="m-edu" class="text-lg font-bold text-indigo-300 mt-1">—</p>
+            </div>
+            <div class="bg-dark-900/90 border border-dark-700 p-3 rounded-lg">
+              <span class="text-xs text-slate-400">Poverty Rate</span>
+              <p id="m-poverty" class="text-lg font-bold text-rose-400 mt-1">—</p>
+            </div>
           </div>
         </div>
 
-        <!-- SIGNALS -->
+        <!-- TAB: SIGNALS -->
         <div id="tab-signals" class="tab-content hidden space-y-3">
-          <span class="text-[11px] uppercase text-slate-400">Automated Evaluation</span>
-          <div id="signalList" class="space-y-2"></div>
-        </div>
-
-        <!-- NEW FRED ECONOMY TAB -->
-        <div id="tab-economy" class="tab-content hidden space-y-3">
-          <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-400">National Macro Indicators</span>
-          <div class="grid grid-cols-2 gap-2.5">
-            <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg">
-              <span class="text-xs text-slate-400">30-Yr Mortgage</span>
-              <p id="f-mortgage" class="text-lg font-bold text-white mt-1">...</p>
-              <p id="f-mortgage-date" class="text-[9px] text-slate-500 mt-0.5">Fetching</p>
-            </div>
-            <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg">
-              <span class="text-xs text-slate-400">Unemployment</span>
-              <p id="f-unemp" class="text-lg font-bold text-white mt-1">...</p>
-              <p id="f-unemp-date" class="text-[9px] text-slate-500 mt-0.5">Fetching</p>
-            </div>
-            <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg">
-              <span class="text-xs text-slate-400">Inflation (CPI)</span>
-              <p id="f-cpi" class="text-lg font-bold text-white mt-1">...</p>
-              <p id="f-cpi-date" class="text-[9px] text-slate-500 mt-0.5">Fetching</p>
-            </div>
-            <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg">
-              <span class="text-xs text-slate-400">Fed Funds Rate</span>
-              <p id="f-fed" class="text-lg font-bold text-white mt-1">...</p>
-              <p id="f-fed-date" class="text-[9px] text-slate-500 mt-0.5">Fetching</p>
+          <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-400">Automated Market Evaluation</span>
+          <div id="signalList" class="space-y-2">
+            <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg text-xs text-slate-400 flex items-start gap-3">
+              <div class="w-2.5 h-2.5 rounded-full bg-slate-600 mt-1"></div>
+              <div>Select a point on the map to run the demographic viability calculation.</div>
             </div>
           </div>
         </div>
 
-        <!-- HOUSING -->
+        <!-- TAB: COMBINED ECONOMY (CENSUS + FRED) -->
+        <div id="tab-economy" class="tab-content hidden space-y-5">
+          
+          <!-- Local Data Section -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[11px] uppercase tracking-wider font-semibold text-blue-400 flex items-center gap-1.5"><i data-lucide="map-pin" class="w-3 h-3"></i> Local Tract (Census)</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2.5">
+              <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg">
+                <span class="text-xs text-slate-400">Median HH Income</span>
+                <p id="e-income" class="text-lg font-bold text-emerald-400 mt-1">—</p>
+              </div>
+              <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg">
+                <span class="text-xs text-slate-400">Poverty Rate</span>
+                <p id="e-poverty" class="text-lg font-bold text-rose-400 mt-1">—</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- National Data Section -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[11px] uppercase tracking-wider font-semibold text-amber-400 flex items-center gap-1.5"><i data-lucide="globe" class="w-3 h-3"></i> National Macro (FRED)</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2.5">
+              <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg relative overflow-hidden">
+                <div class="absolute -right-2 -top-2 text-dark-800 opacity-50"><i data-lucide="home" class="w-12 h-12"></i></div>
+                <span class="text-xs text-slate-400 relative z-10">30-Yr Mortgage</span>
+                <p id="f-mortgage" class="text-lg font-bold text-white mt-1 relative z-10">...</p>
+                <p id="f-mortgage-date" class="text-[9px] text-slate-500 mt-0.5 relative z-10">Fetching</p>
+              </div>
+              <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg relative overflow-hidden">
+                <div class="absolute -right-2 -top-2 text-dark-800 opacity-50"><i data-lucide="users" class="w-12 h-12"></i></div>
+                <span class="text-xs text-slate-400 relative z-10">Unemployment</span>
+                <p id="f-unemp" class="text-lg font-bold text-white mt-1 relative z-10">...</p>
+                <p id="f-unemp-date" class="text-[9px] text-slate-500 mt-0.5 relative z-10">Fetching</p>
+              </div>
+              <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg relative overflow-hidden">
+                <div class="absolute -right-2 -top-2 text-dark-800 opacity-50"><i data-lucide="shopping-cart" class="w-12 h-12"></i></div>
+                <span class="text-xs text-slate-400 relative z-10">Inflation (CPI)</span>
+                <p id="f-cpi" class="text-lg font-bold text-white mt-1 relative z-10">...</p>
+                <p id="f-cpi-date" class="text-[9px] text-slate-500 mt-0.5 relative z-10">Fetching</p>
+              </div>
+              <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg relative overflow-hidden">
+                <div class="absolute -right-2 -top-2 text-dark-800 opacity-50"><i data-lucide="landmark" class="w-12 h-12"></i></div>
+                <span class="text-xs text-slate-400 relative z-10">Fed Funds Rate</span>
+                <p id="f-fed" class="text-lg font-bold text-white mt-1 relative z-10">...</p>
+                <p id="f-fed-date" class="text-[9px] text-slate-500 mt-0.5 relative z-10">Fetching</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: HOUSING -->
         <div id="tab-housing" class="tab-content hidden space-y-3">
+          <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-400">Housing Composition</span>
           <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg space-y-2 text-xs">
-            <div class="flex justify-between"><span class="text-slate-400">Housing Units</span><span id="h-units" class="font-bold text-white">—</span></div>
-            <div class="flex justify-between"><span class="text-slate-400">Median Value</span><span id="h-val" class="font-bold text-white">—</span></div>
-            <div class="flex justify-between"><span class="text-slate-400">Median Rent</span><span id="h-rent" class="font-bold text-white">—</span></div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Total Housing Units</span>
+              <span id="h-units" class="font-bold text-white">—</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Median Home Value</span>
+              <span id="h-val" class="font-bold text-white">—</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Median Gross Rent</span>
+              <span id="h-rent" class="font-bold text-white">—</span>
+            </div>
           </div>
         </div>
 
-        <!-- MOBILITY -->
+        <!-- TAB: MOBILITY -->
         <div id="tab-mobility" class="tab-content hidden space-y-3">
+          <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-400">Commute & Vehicles</span>
           <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg space-y-2 text-xs">
-            <div class="flex justify-between"><span class="text-slate-400">Mean Commute</span><span id="m-commute" class="font-bold text-white">—</span></div>
-            <div class="flex justify-between"><span class="text-slate-400">Work From Home</span><span id="m-wfh" class="font-bold text-white">—</span></div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Mean Commute Time</span>
+              <span id="m-commute" class="font-bold text-white">— min</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Work From Home</span>
+              <span id="m-wfh" class="font-bold text-white">—</span>
+            </div>
           </div>
         </div>
+
       </div>
 
-      <footer class="p-3 border-t border-dark-700 text-[11px] text-slate-500 flex justify-between bg-dark-900">
+      <!-- Footer Info -->
+      <footer class="p-3 border-t border-dark-700 text-[11px] text-slate-500 flex justify-between items-center bg-dark-900">
         <span>Spatialytics HyperLocal Engine</span>
         <span id="apiStatus" class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Ready</span>
       </footer>
     </aside>
   </main>
 
-  <!-- Key Modal -->
+  <!-- Census API Key Modal -->
   <div id="keyModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden">
-    <div class="bg-dark-800 border border-dark-700 rounded-xl p-5 max-w-md w-full shadow-2xl">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-sm font-bold text-white">Census API Key</h3>
-        <button id="closeModalBtn" class="text-slate-400"><i data-lucide="x" class="w-4 h-4"></i></button>
+    <div class="bg-dark-800 border border-dark-700 rounded-xl p-5 max-w-md w-full shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <i data-lucide="key" class="w-4 h-4 text-yellow-400"></i> Census API Configuration
+        </h3>
+        <button id="closeModalBtn" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
       </div>
-      <input id="keyInput" type="password" placeholder="Paste Census key..." class="w-full px-3 py-2 bg-dark-900 border border-dark-700 rounded-lg text-xs text-slate-100 mb-4" />
-      <div class="flex justify-end gap-2">
-        <button id="saveKeyBtn" class="px-4 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white rounded-lg">Save Key</button>
+      <p class="text-xs text-slate-400 leading-relaxed">
+        If you are hosting on Vercel with <code class="text-blue-400">CENSUS_API_KEY</code> set in environment variables, requests are handled automatically via <code class="text-blue-400">/api/census</code>. Otherwise, you can enter a personal Census API key for direct browser queries.
+      </p>
+      <div>
+        <label class="text-[11px] font-semibold uppercase text-slate-400 block mb-1">Local Browser API Key</label>
+        <input id="keyInput" type="password" placeholder="Paste Census API key here..."
+          class="w-full px-3 py-2 bg-dark-900 border border-dark-700 rounded-lg text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-blue-500" />
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button id="clearSavedKeyBtn" class="px-3 py-1.5 text-xs text-rose-400 hover:bg-rose-950/40 rounded-lg border border-rose-900/50">Remove</button>
+        <button id="saveKeyBtn" class="px-4 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition">Save Key</button>
       </div>
     </div>
   </div>
 
   <script>
     lucide.createIcons();
-    const state = { lat: 46.39489, lng: -94.15844, radius: 1609, marker: null, circle: null };
-    const map = L.map('map').setView([state.lat, state.lng], 13);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+    // App State
+    const state = {
+      lat: 46.39489,
+      lng: -94.15844,
+      radius: 1609,
+      marker: null,
+      circle: null
+    };
+
+    // Initialize Leaflet Map
+    const map = L.map('map', { zoomControl: true }).setView([state.lat, state.lng], 13);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
 
     function updatePin(lat, lng) {
-      state.lat = lat; state.lng = lng;
+      state.lat = lat;
+      state.lng = lng;
+
       if (state.marker) map.removeLayer(state.marker);
       if (state.circle) map.removeLayer(state.circle);
+
       state.marker = L.marker([lat, lng]).addTo(map);
-      state.circle = L.circle([lat, lng], { radius: state.radius, color: '#3b82f6', fillOpacity: 0.15 }).addTo(map);
+      state.circle = L.circle([lat, lng], {
+        radius: state.radius,
+        color: '#3b82f6',
+        fillColor: '#3b82f6',
+        fillOpacity: 0.15,
+        weight: 2
+      }).addTo(map);
+
       document.getElementById('locCoords').innerText = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      reverseGeocode(lat, lng);
       fetchCensusData(lat, lng);
     }
 
-    map.on('click', (e) => updatePin(e.latlng.lat, e.latlng.lng));
+    // Map Click Listener
+    map.on('click', (e) => {
+      updatePin(e.latlng.lat, e.latlng.lng);
+    });
 
-    async function fetchCensusData(lat, lng) {
+    // Buffer radius change
+    document.getElementById('bufferRadius').addEventListener('change', (e) => {
+      state.radius = parseInt(e.target.value);
+      if (state.circle) {
+        state.circle.setRadius(state.radius);
+      }
+    });
+
+    // Geocoding via OSM Nominatim
+    async function searchLocation(query) {
+      if (!query.trim()) return;
       try {
-        const fccRes = await fetch(`https://geo.fcc.gov/api/census/block/find?latitude=${lat}&longitude=${lng}&format=json`);
-        const { Block } = await fccRes.json();
-        const vars = 'B01003_001E,B01002_001E,B19013_001E,B25003_001E,B25003_002E,B15003_022E,B15003_001E,B17001_002E,B17001_001E,B25077_001E,B25064_001E,B08013_001E,B08301_001E,B08301_021E';
-        
-        let url = `/api/census?state=${Block.FIPS.substring(0,2)}&county=${Block.FIPS.substring(2,5)}&tract=${Block.FIPS.substring(5,11)}&vars=${vars}`;
-        let res = await fetch(url);
-        
-        if (!res.ok) {
-           const key = localStorage.getItem('hyperlocal_census_key') || '';
-           url = `https://api.census.gov/data/2022/acs/acs5?get=${vars}&for=tract:${Block.FIPS.substring(5,11)}&in=state:${Block.FIPS.substring(0,2)}+county:${Block.FIPS.substring(2,5)}&key=${key}`;
-           res = await fetch(url);
-        }
-        
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
         const data = await res.json();
-        if (data[1]) {
-          const row = data[1];
-          const occUnits = parseInt(row[3]) || 0;
-          const ownerUnits = parseInt(row[4]) || 0;
-          const totalWorkers = parseInt(row[12]) || 0;
-          const wfhWorkers = parseInt(row[13]) || 0;
-          
-          document.getElementById('m-pop').innerText = parseInt(row[0]).toLocaleString();
-          document.getElementById('m-age').innerText = `${parseFloat(row[1])} yrs`;
-          document.getElementById('m-income').innerText = `$${parseInt(row[2]).toLocaleString()}`;
-          document.getElementById('m-ownership').innerText = `${occUnits ? Math.round((ownerUnits/occUnits)*100) : 0}%`;
-          document.getElementById('m-edu').innerText = `${Math.round((parseInt(row[5])/(parseInt(row[6])||1))*100)}%`;
-          document.getElementById('m-poverty').innerText = `${Math.round((parseInt(row[7])/(parseInt(row[8])||1))*100)}%`;
-          
-          document.getElementById('h-units').innerText = occUnits.toLocaleString();
-          document.getElementById('h-val').innerText = `$${parseInt(row[9]).toLocaleString()}`;
-          document.getElementById('h-rent').innerText = `$${parseInt(row[10]).toLocaleString()}/mo`;
-          
-          document.getElementById('m-commute').innerText = `${totalWorkers > wfhWorkers ? Math.round(parseInt(row[11]) / (totalWorkers - wfhWorkers)) : 0} min`;
-          document.getElementById('m-wfh').innerText = `${totalWorkers ? Math.round((wfhWorkers/totalWorkers)*100) : 0}%`;
-          
-          generateSignals(parseInt(row[2]), occUnits ? (ownerUnits/occUnits)*100 : 0);
+        if (data.length > 0) {
+          const { lat, lon, display_name } = data[0];
+          const latitude = parseFloat(lat);
+          const longitude = parseFloat(lon);
+          map.flyTo([latitude, longitude], 14);
+          updatePin(latitude, longitude);
+          document.getElementById('locTitle').innerText = display_name.split(',')[0];
+          document.getElementById('locSub').innerText = display_name;
+        } else {
+          alert('Location not found. Please try a different query.');
         }
       } catch (err) {
-        console.error(err);
+        console.error('Search error:', err);
       }
     }
 
-    function generateSignals(income, ownership) {
-      let html = '';
-      if (income >= 75000) html += `<div class="bg-dark-900 p-3 rounded flex gap-2"><span class="w-2 h-2 rounded-full bg-emerald-500 mt-1"></span><span class="text-xs">Strong purchasing power</span></div>`;
-      if (ownership >= 65) html += `<div class="bg-dark-900 p-3 rounded flex gap-2"><span class="w-2 h-2 rounded-full bg-emerald-500 mt-1"></span><span class="text-xs">High residential stability</span></div>`;
-      document.getElementById('signalList').innerHTML = html || '<span class="text-xs text-slate-500">No strong signals detected.</span>';
+    async function reverseGeocode(lat, lng) {
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+        const data = await res.json();
+        if (data && data.display_name) {
+          const parts = data.display_name.split(',');
+          document.getElementById('locTitle').innerText = parts[0] + (parts[1] ? `, ${parts[1]}` : '');
+          document.getElementById('locSub').innerText = data.display_name;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // Census Data Lookup
+    async function fetchCensusData(lat, lng) {
+      document.getElementById('apiStatus').innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-ping"></span> Querying...';
+      
+      try {
+        const fccRes = await fetch(`https://geo.fcc.gov/api/census/block/find?latitude=${lat}&longitude=${lng}&format=json`);
+        const fccData = await fccRes.json();
+        
+        if (!fccData || !fccData.Block) throw new Error("Could not resolve census tract for location");
+
+        const fips = fccData.Block.FIPS;
+        const stateFips = fips.substring(0, 2);
+        const countyFips = fips.substring(2, 5);
+        const tractFips = fips.substring(5, 11);
+
+        const vars = 'B01003_001E,B01002_001E,B19013_001E,B25003_001E,B25003_002E,B15003_022E,B15003_001E,B17001_002E,B17001_001E,B25077_001E,B25064_001E,B08013_001E,B08301_001E,B08301_021E';
+        let acsData = null;
+        const localKey = localStorage.getItem('hyperlocal_census_key');
+
+        try {
+          const vercelRes = await fetch(`/api/census?state=${stateFips}&county=${countyFips}&tract=${tractFips}&vars=${vars}`);
+          if (vercelRes.ok) acsData = await vercelRes.json();
+        } catch (e) {}
+
+        if (!acsData) {
+          const keyParam = localKey ? `&key=${localKey}` : '';
+          const directUrl = `https://api.census.gov/data/2022/acs/acs5?get=${vars}&for=tract:${tractFips}&in=state:${stateFips}+county:${countyFips}${keyParam}`;
+          const directRes = await fetch(directUrl);
+          acsData = await directRes.json();
+        }
+
+        if (acsData && acsData[1]) {
+          const row = acsData[1];
+          const pop = parseInt(row[0]) || 0;
+          const age = parseFloat(row[1]) || 0;
+          const income = parseInt(row[2]) || 0;
+          const occUnits = parseInt(row[3]) || 0;
+          const ownerUnits = parseInt(row[4]) || 0;
+          const bachelors = parseInt(row[5]) || 0;
+          const eduBase = parseInt(row[6]) || 1;
+          const povertyPop = parseInt(row[7]) || 0;
+          const povertyBase = parseInt(row[8]) || 1;
+          const homeVal = parseInt(row[9]) || 0;
+          const rentVal = parseInt(row[10]) || 0;
+          const aggCommuteTime = parseInt(row[11]) || 0;
+          const totalWorkers = parseInt(row[12]) || 0;
+          const wfhWorkers = parseInt(row[13]) || 0;
+
+          const homeownershipPct = occUnits > 0 ? Math.round((ownerUnits / occUnits) * 100) : 0;
+          const bachelorPct = Math.round((bachelors / eduBase) * 100);
+          const povertyPct = Math.round((povertyPop / povertyBase) * 100);
+          const commutingWorkers = totalWorkers - wfhWorkers;
+          const meanCommute = commutingWorkers > 0 ? Math.round(aggCommuteTime / commutingWorkers) : 0;
+          const wfhPct = totalWorkers > 0 ? Math.round((wfhWorkers / totalWorkers) * 100) : 0;
+          
+          const incomeString = income > 0 ? `$${income.toLocaleString()}` : 'N/A';
+          const povertyString = `${povertyPct}%`;
+
+          // Update UI: Snapshot
+          document.getElementById('m-pop').innerText = pop.toLocaleString();
+          document.getElementById('m-age').innerText = age > 0 ? `${age} yrs` : 'N/A';
+          document.getElementById('m-income').innerText = incomeString;
+          document.getElementById('m-ownership').innerText = `${homeownershipPct}%`;
+          document.getElementById('m-edu').innerText = `${bachelorPct}%`;
+          document.getElementById('m-poverty').innerText = povertyString;
+
+          // Update UI: Combined Economy Tab (Local Stats)
+          document.getElementById('e-income').innerText = incomeString;
+          document.getElementById('e-poverty').innerText = povertyString;
+
+          // Update UI: Housing & Mobility
+          document.getElementById('h-units').innerText = occUnits.toLocaleString();
+          document.getElementById('h-val').innerText = homeVal > 0 ? `$${homeVal.toLocaleString()}` : 'N/A';
+          document.getElementById('h-rent').innerText = rentVal > 0 ? `$${rentVal.toLocaleString()}/mo` : 'N/A';
+          document.getElementById('m-commute').innerText = meanCommute > 0 ? `${meanCommute} min` : 'N/A';
+          document.getElementById('m-wfh').innerText = `${wfhPct}%`;
+
+          generateSignals({ income, homeownershipPct, bachelorPct, povertyPct, age });
+          document.getElementById('apiStatus').innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Census Synced';
+        }
+      } catch (err) {
+        document.getElementById('apiStatus').innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span> Offline';
+      }
+    }
+
+    // Market Signals Evaluation Logic
+    function generateSignals({ income, homeownershipPct, bachelorPct, povertyPct, age }) {
+      const signals = [];
+
+      if (income >= 75000) {
+        signals.push({ level: 'green', text: `Strong purchasing power ($${income.toLocaleString()} median household income)` });
+      } else if (income > 45000) {
+        signals.push({ level: 'yellow', text: `Moderate purchasing power ($${income.toLocaleString()} median income)` });
+      } else if (income > 0) {
+        signals.push({ level: 'red', text: `Value-conscious market ($${income.toLocaleString()} median income)` });
+      }
+
+      if (homeownershipPct >= 65) {
+        signals.push({ level: 'green', text: `High residential stability (${homeownershipPct}% owner-occupied housing)` });
+      } else {
+        signals.push({ level: 'yellow', text: `Balanced or high-rental market (${100 - homeownershipPct}% renter occupied)` });
+      }
+
+      if (bachelorPct >= 35) {
+        signals.push({ level: 'green', text: `High professional density (${bachelorPct}% holds Bachelor's degree or higher)` });
+      }
+
+      if (povertyPct > 20) {
+        signals.push({ level: 'red', text: `Elevated poverty rate (${povertyPct}% under poverty line)` });
+      }
+
+      const signalContainer = document.getElementById('signalList');
+      signalContainer.innerHTML = signals.map(s => {
+        const color = s.level === 'green' ? 'bg-emerald-500' : s.level === 'yellow' ? 'bg-amber-400' : 'bg-rose-500';
+        return `
+          <div class="bg-dark-900 border border-dark-700 p-3 rounded-lg flex items-start gap-3">
+            <span class="w-2.5 h-2.5 rounded-full ${color} mt-1 shrink-0"></span>
+            <span class="text-xs text-slate-200">${s.text}</span>
+          </div>
+        `;
+      }).join('');
     }
 
     // Fetch FRED Data on Load
     async function fetchFredData() {
       const series = [
-        { id: 'MORTGAGE30US', el: 'f-mortgage', format: v => `${v}%` },
-        { id: 'UNRATE', el: 'f-unemp', format: v => `${v}%` },
-        { id: 'CPIAUCSL', el: 'f-cpi', format: v => v },
-        { id: 'FEDFUNDS', el: 'f-fed', format: v => `${v}%` }
+        { id: 'MORTGAGE30US', el: 'f-mortgage', format: v => `${parseFloat(v).toFixed(2)}%` },
+        { id: 'UNRATE', el: 'f-unemp', format: v => `${parseFloat(v).toFixed(1)}%` },
+        { id: 'CPIAUCSL', el: 'f-cpi', format: v => parseFloat(v).toFixed(1) },
+        { id: 'FEDFUNDS', el: 'f-fed', format: v => `${parseFloat(v).toFixed(2)}%` }
       ];
 
       for (const s of series) {
@@ -249,7 +505,7 @@
           if (res.ok) {
             const data = await res.json();
             document.getElementById(s.el).innerText = s.format(data.value);
-            document.getElementById(`${s.el}-date`).innerText = `As of ${data.date}`;
+            document.getElementById(`${s.el}-date`).innerText = `Updated: ${data.date}`;
           } else {
             document.getElementById(s.el).innerText = "Error";
           }
@@ -259,6 +515,7 @@
       }
     }
 
+    // Tab Switching
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-btn').forEach(b => {
@@ -267,22 +524,52 @@
         });
         btn.classList.add('text-blue-400', 'border-b-2', 'border-blue-500');
         btn.classList.remove('text-slate-400');
+
         document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
         document.getElementById(`tab-${btn.dataset.tab}`).classList.remove('hidden');
       });
     });
 
+    // Modal and API Key Management
     const keyModal = document.getElementById('keyModal');
-    document.getElementById('censusKeyBtn').addEventListener('click', () => keyModal.classList.remove('hidden'));
+    document.getElementById('censusKeyBtn').addEventListener('click', () => {
+      document.getElementById('keyInput').value = localStorage.getItem('hyperlocal_census_key') || '';
+      keyModal.classList.remove('hidden');
+    });
+
     document.getElementById('closeModalBtn').addEventListener('click', () => keyModal.classList.add('hidden'));
+
     document.getElementById('saveKeyBtn').addEventListener('click', () => {
-      localStorage.setItem('hyperlocal_census_key', document.getElementById('keyInput').value);
+      const key = document.getElementById('keyInput').value.trim();
+      if (key) {
+        localStorage.setItem('hyperlocal_census_key', key);
+      }
       keyModal.classList.add('hidden');
       fetchCensusData(state.lat, state.lng);
     });
 
+    document.getElementById('clearSavedKeyBtn').addEventListener('click', () => {
+      localStorage.removeItem('hyperlocal_census_key');
+      document.getElementById('keyInput').value = '';
+      keyModal.classList.add('hidden');
+    });
+
+    // Search Trigger
+    document.getElementById('searchBtn').addEventListener('click', () => {
+      searchLocation(document.getElementById('searchInput').value);
+    });
+    document.getElementById('searchInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') searchLocation(e.target.value);
+    });
+
+    // Clear Button
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      document.getElementById('searchInput').value = '';
+    });
+
+    // Initialize
     updatePin(state.lat, state.lng);
-    fetchFredData(); // Run FRED fetch immediately on load
+    fetchFredData();
   </script>
 </body>
 </html>
